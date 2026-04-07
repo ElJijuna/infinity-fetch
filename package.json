@@ -1,8 +1,14 @@
 {
   "name": "infinity-fetch",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Configurable recursive/infinite fetch utility for paginated APIs. Works in Node.js and browsers.",
-  "keywords": ["infinity", "fetch", "pagination", "recursive", "bitbucket"],
+  "keywords": [
+    "infinity",
+    "fetch",
+    "pagination",
+    "recursive",
+    "bitbucket"
+  ],
   "homepage": "https://github.com/ElJijuna/infinity-fetch#readme",
   "bugs": {
     "url": "https://github.com/ElJijuna/infinity-fetch/issues"
@@ -22,7 +28,9 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "docs": "typedoc",
@@ -40,12 +48,19 @@
   "jest": {
     "preset": "ts-jest/presets/default-esm",
     "testEnvironment": "node",
-    "extensionsToTreatAsEsm": [".ts"],
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1"
     },
     "transform": {
-      "^.+\\.ts$": ["ts-jest", { "useESM": true }]
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
     }
   }
 }
