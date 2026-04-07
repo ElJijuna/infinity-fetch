@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  pages: write
+  id-token: write
+
+jobs:
+  release:
+    name: Semantic Release & npm Publish
+    runs-on: ubuntu-latest
+    outputs:
+      new_release_published: ${{ steps.release.outputs.new_release_published }}
+      new_release_version: ${{ steps.release.outputs.new_release_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: Semantic Release
+        id: release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  docs:
+    name: Generate Docs & Deploy to GitHub Pages
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Checkout the commit that semantic-release just pushed (with updated version)
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run docs
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
