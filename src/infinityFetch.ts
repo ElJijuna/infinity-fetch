@@ -16,6 +16,10 @@ export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = {
   getNextParams: (response: TResponse, currentParams: TParams) => TParams;
   /** Extracts items from a single page response */
   getItems: (response: TResponse) => TItem[];
+  /** Optional: called once before the first fetch starts */
+  onStart?: () => void;
+  /** Optional: called once after all pages have been fetched */
+  onEnd?: (result: InfinityFetchResult<TItem>) => void;
   /** Optional: called after each page is fetched */
   onPage?: (items: TItem[], response: TResponse, pageIndex: number) => void;
   /** Optional: maximum number of pages to fetch (safety limit) */
@@ -31,9 +35,13 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
     isLastPage,
     getNextParams,
     getItems,
+    onStart,
+    onEnd,
     onPage,
     maxPages = Infinity,
   } = config;
+
+  onStart?.();
 
   const items: TItem[] = [];
   let params = initialParams;
@@ -52,5 +60,7 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
     params = getNextParams(response, params);
   }
 
-  return { items, pages: pageIndex };
+  const result = { items, pages: pageIndex };
+  onEnd?.(result);
+  return result;
 }

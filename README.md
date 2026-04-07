@@ -84,13 +84,15 @@ const { items, pages } = await pagedFetch({
 console.log(`${items.length} commits fetched across ${pages} pages`);
 ```
 
-With progress tracking and safety limit:
+With loading state and progress tracking:
 
 ```typescript
 const { items, pages } = await pagedFetch({
   fetcher: (params) => api.project('my-project').repo('my-repo').commits(params),
   limit: 100,
   maxPages: 20,
+  onStart: () => setLoading(true),
+  onEnd:   () => setLoading(false),
   onPage: (pageItems, _response, pageIndex) => {
     console.log(`Page ${pageIndex + 1}: ${pageItems.length} commits`);
   },
@@ -128,7 +130,16 @@ const { items, pages } = await infinityFetch({
   // Optional: safety cap on number of pages
   maxPages: 100,
 
-  // Optional: called after each page
+  // Optional: called once before the first fetch
+  onStart: () => setLoading(true),
+
+  // Optional: called once after all pages are done — receives the final result
+  onEnd: ({ items, pages }) => {
+    setLoading(false);
+    console.log(`Done: ${items.length} items across ${pages} pages`);
+  },
+
+  // Optional: called after each individual page
   onPage: (pageItems, _response, pageIndex) => {
     console.log(`Page ${pageIndex + 1}: ${pageItems.length} items`);
   },
@@ -148,7 +159,9 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 | `fetcher` | `(params: PagedParams) => Promise<PagedResponse<TItem>>` | required | Function that fetches one page |
 | `limit` | `number` | `100` | Items per page |
 | `maxPages` | `number` | `Infinity` | Maximum pages to fetch (safety limit) |
-| `onPage` | `(items, response, pageIndex) => void` | — | Called after each page |
+| `onStart` | `() => void` | — | Called once before the first fetch |
+| `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
+| `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
 
 **`PagedParams`**
 ```typescript
@@ -181,7 +194,9 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 | `getNextParams` | `(response: TResponse, currentParams: TParams) => TParams` | required | Computes params for the next page |
 | `getItems` | `(response: TResponse) => TItem[]` | required | Extracts items from a response |
 | `maxPages` | `number` | `Infinity` | Maximum pages to fetch (safety limit) |
-| `onPage` | `(items, response, pageIndex) => void` | — | Called after each page |
+| `onStart` | `() => void` | — | Called once before the first fetch |
+| `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
+| `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
 
 **Returns:** `Promise<InfinityFetchResult<TItem>>`
 

@@ -109,6 +109,45 @@ describe('infinityFetch', () => {
     expect(onPage).toHaveBeenNthCalledWith(2, [20], expect.any(Object), 1);
   });
 
+  it('calls onStart before the first fetch and onEnd after the last', async () => {
+    const order: string[] = [];
+    const fetcher = makeCursorFetcher([
+      { items: [1], done: false, next: 1 },
+      { items: [2], done: true, next: 0 },
+    ]);
+
+    await infinityFetch({
+      fetcher: (params) => { order.push('fetch'); return fetcher(params); },
+      initialParams: { cursor: 0 },
+      isLastPage: (r) => r.done,
+      getNextParams: (r) => ({ cursor: r.next }),
+      getItems: (r) => r.items,
+      onStart: () => order.push('start'),
+      onEnd: () => order.push('end'),
+    });
+
+    expect(order).toEqual(['start', 'fetch', 'fetch', 'end']);
+  });
+
+  it('passes the final result to onEnd', async () => {
+    const fetcher = makeCursorFetcher([
+      { items: [1, 2], done: false, next: 2 },
+      { items: [3], done: true, next: 0 },
+    ]);
+    const onEnd = jest.fn();
+
+    await infinityFetch({
+      fetcher,
+      initialParams: { cursor: 0 },
+      isLastPage: (r) => r.done,
+      getNextParams: (r) => ({ cursor: r.next }),
+      getItems: (r) => r.items,
+      onEnd,
+    });
+
+    expect(onEnd).toHaveBeenCalledWith({ items: [1, 2, 3], pages: 2 });
+  });
+
   it('returns empty items and pages=1 when the first page has no items', async () => {
     const fetcher = makeCursorFetcher([{ items: [], done: true, next: 0 }]);
 
