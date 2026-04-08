@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/ElJijuna/infinity-fetch/compare/v1.1.0...v1.2.0) (2026-04-08)
+
+
+### Features
+
+* add optional delay between page fetches ([df052e2](https://github.com/ElJijuna/infinity-fetch/commit/df052e226affebd4c160e4254741a86a4943436f))
+
 # [1.1.0](https://github.com/ElJijuna/infinity-fetch/compare/v1.0.0...v1.1.0) (2026-04-07)
 
 
