@@ -23,6 +23,8 @@ export type PagedFetchConfig<TItem> = {
   onPage?: (items: TItem[], response: PagedResponse<TItem>, pageIndex: number) => void;
   /** Maximum number of pages to fetch (safety limit) */
   maxPages?: number;
+  /** Optional: milliseconds to wait between each page fetch */
+  delay?: number;
 };
 
 /**
@@ -47,5 +49,6 @@ export function pagedFetch<TItem>(config: PagedFetchConfig<TItem>): Promise<Infi
     getItems: (response) => response.values,
     onPage: config.onPage,
     maxPages: config.maxPages,
+    delay: config.delay,
   });
 }

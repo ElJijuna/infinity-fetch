@@ -24,6 +24,8 @@ export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = {
   onPage?: (items: TItem[], response: TResponse, pageIndex: number) => void;
   /** Optional: maximum number of pages to fetch (safety limit) */
   maxPages?: number;
+  /** Optional: milliseconds to wait between each page fetch */
+  delay?: number;
 };
 
 export async function infinityFetch<TResponse, TParams extends object, TItem>(
@@ -39,6 +41,7 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
     onEnd,
     onPage,
     maxPages = Infinity,
+    delay,
   } = config;
 
   onStart?.();
@@ -58,6 +61,8 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
     if (isLastPage(response)) break;
 
     params = getNextParams(response, params);
+
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   const result = { items, pages: pageIndex };

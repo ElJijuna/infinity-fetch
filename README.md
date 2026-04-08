@@ -84,13 +84,14 @@ const { items, pages } = await pagedFetch({
 console.log(`${items.length} commits fetched across ${pages} pages`);
 ```
 
-With loading state and progress tracking:
+With loading state, progress tracking, and a delay between pages:
 
 ```typescript
 const { items, pages } = await pagedFetch({
   fetcher: (params) => api.project('my-project').repo('my-repo').commits(params),
   limit: 100,
   maxPages: 20,
+  delay: 200, // wait 200ms between each page fetch
   onStart: () => setLoading(true),
   onEnd:   () => setLoading(false),
   onPage: (pageItems, _response, pageIndex) => {
@@ -130,6 +131,9 @@ const { items, pages } = await infinityFetch({
   // Optional: safety cap on number of pages
   maxPages: 100,
 
+  // Optional: milliseconds to wait between each page fetch
+  delay: 200,
+
   // Optional: called once before the first fetch
   onStart: () => setLoading(true),
 
@@ -159,6 +163,7 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 | `fetcher` | `(params: PagedParams) => Promise<PagedResponse<TItem>>` | required | Function that fetches one page |
 | `limit` | `number` | `100` | Items per page |
 | `maxPages` | `number` | `Infinity` | Maximum pages to fetch (safety limit) |
+| `delay` | `number` | — | Milliseconds to wait between each page fetch |
 | `onStart` | `() => void` | — | Called once before the first fetch |
 | `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
 | `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
@@ -194,6 +199,7 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 | `getNextParams` | `(response: TResponse, currentParams: TParams) => TParams` | required | Computes params for the next page |
 | `getItems` | `(response: TResponse) => TItem[]` | required | Extracts items from a response |
 | `maxPages` | `number` | `Infinity` | Maximum pages to fetch (safety limit) |
+| `delay` | `number` | — | Milliseconds to wait between each page fetch |
 | `onStart` | `() => void` | — | Called once before the first fetch |
 | `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
 | `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |

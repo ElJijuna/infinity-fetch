@@ -148,6 +148,36 @@ describe('infinityFetch', () => {
     expect(onEnd).toHaveBeenCalledWith({ items: [1, 2, 3], pages: 2 });
   });
 
+  it('waits delay milliseconds between page fetches', async () => {
+    jest.useFakeTimers();
+    const fetcher = makeCursorFetcher([
+      { items: [1], done: false, next: 1 },
+      { items: [2], done: false, next: 2 },
+      { items: [3], done: true, next: 0 },
+    ]);
+    const timestamps: number[] = [];
+    const wrappedFetcher = jest.fn((params: CursorParams) => {
+      timestamps.push(Date.now());
+      return fetcher(params);
+    });
+
+    const promise = infinityFetch({
+      fetcher: wrappedFetcher,
+      initialParams: { cursor: 0 },
+      isLastPage: (r) => r.done,
+      getNextParams: (r) => ({ cursor: r.next }),
+      getItems: (r) => r.items,
+      delay: 500,
+    });
+
+    await jest.runAllTimersAsync();
+    await promise;
+
+    expect(timestamps[1] - timestamps[0]).toBeGreaterThanOrEqual(500);
+    expect(timestamps[2] - timestamps[1]).toBeGreaterThanOrEqual(500);
+    jest.useRealTimers();
+  });
+
   it('returns empty items and pages=1 when the first page has no items', async () => {
     const fetcher = makeCursorFetcher([{ items: [], done: true, next: 0 }]);
 
