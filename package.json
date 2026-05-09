@@ -18,7 +18,7 @@
     "url": "git+https://github.com/ElJijuna/infinity-fetch.git"
   },
   "license": "MIT",
-  "author": "Ivan",
+  "author": "pilmee <pilmee@gmail.com> (https://github.com/ElJijuna)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
