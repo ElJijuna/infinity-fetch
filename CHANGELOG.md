@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/ElJijuna/infinity-fetch/compare/v1.2.0...v1.3.0) (2026-05-12)
+
+
+### Bug Fixes
+
+* align pagedFetch lifecycle callbacks and pagination guard ([f303588](https://github.com/ElJijuna/infinity-fetch/commit/f303588f8da3114ff098e553033d799fc2e45dbc))
+
+
+### Features
+
+* add retry support for paginated fetches. ([81f865f](https://github.com/ElJijuna/infinity-fetch/commit/81f865fe63abaa2b72fc33823e8a7545e8c283bc))
+
 # [1.2.0](https://github.com/ElJijuna/infinity-fetch/compare/v1.1.0...v1.2.0) (2026-04-08)
 
 
