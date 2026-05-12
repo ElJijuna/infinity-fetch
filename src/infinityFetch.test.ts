@@ -245,4 +245,36 @@ describe('pagedFetch', () => {
     expect(items).toEqual([1, 1]);
     expect(pages).toBe(2);
   });
+
+  it('calls onStart before the first fetch and onEnd with the final result', async () => {
+    const order: string[] = [];
+    const fetcher = makePagedFetcher([
+      makePagedResponse(['a'], false, 100),
+      makePagedResponse(['b'], true),
+    ]);
+    const onEnd = jest.fn((result: { items: string[]; pages: number }) => {
+      order.push('end');
+      expect(result).toEqual({ items: ['a', 'b'], pages: 2 });
+    });
+
+    await pagedFetch({
+      fetcher: (params) => {
+        order.push('fetch');
+        return fetcher(params);
+      },
+      onStart: () => order.push('start'),
+      onEnd,
+    });
+
+    expect(order).toEqual(['start', 'fetch', 'fetch', 'end']);
+    expect(onEnd).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws when a non-final page does not provide nextPageStart', async () => {
+    const fetcher = makePagedFetcher([makePagedResponse(['a'], false)]);
+
+    await expect(pagedFetch({ fetcher })).rejects.toThrow(
+      'Missing nextPageStart in non-final paged response'
+    );
+  });
 });

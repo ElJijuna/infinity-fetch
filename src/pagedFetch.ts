@@ -19,6 +19,10 @@ export type PagedFetchConfig<TItem> = {
   fetcher: (params: PagedParams) => Promise<PagedResponse<TItem>>;
   /** Items per page. Defaults to 100. */
   limit?: number;
+  /** Optional: called once before the first fetch starts */
+  onStart?: () => void;
+  /** Optional: called once after all pages have been fetched */
+  onEnd?: (result: InfinityFetchResult<TItem>) => void;
   /** Called after each page is fetched */
   onPage?: (items: TItem[], response: PagedResponse<TItem>, pageIndex: number) => void;
   /** Maximum number of pages to fetch (safety limit) */
@@ -42,11 +46,19 @@ export function pagedFetch<TItem>(config: PagedFetchConfig<TItem>): Promise<Infi
     fetcher: config.fetcher,
     initialParams: { start: 0, limit: config.limit ?? 100 },
     isLastPage: (response) => response.isLastPage,
-    getNextParams: (response, currentParams) => ({
-      start: response.nextPageStart ?? 0,
-      limit: currentParams.limit,
-    }),
+    getNextParams: (response, currentParams) => {
+      if (response.nextPageStart === undefined) {
+        throw new Error('Missing nextPageStart in non-final paged response');
+      }
+
+      return {
+        start: response.nextPageStart,
+        limit: currentParams.limit,
+      };
+    },
     getItems: (response) => response.values,
+    onStart: config.onStart,
+    onEnd: config.onEnd,
     onPage: config.onPage,
     maxPages: config.maxPages,
     delay: config.delay,
