@@ -192,6 +192,109 @@ describe('infinityFetch', () => {
     expect(items).toEqual([]);
     expect(pages).toBe(1);
   });
+
+  it('retries a failed page fetch and continues with the successful response', async () => {
+    const error = new Error('temporary failure');
+    const fetcher = jest.fn((params: CursorParams): Promise<CursorResponse> => {
+      if (fetcher.mock.calls.length === 1) {
+        return Promise.reject(error);
+      }
+
+      return Promise.resolve({ items: [params.cursor + 1], done: true, next: 0 });
+    });
+    const retryWhen = jest.fn(() => true);
+
+    const { items, pages } = await infinityFetch({
+      fetcher,
+      initialParams: { cursor: 0 },
+      isLastPage: (r) => r.done,
+      getNextParams: (r) => ({ cursor: r.next }),
+      getItems: (r) => r.items,
+      retry: {
+        maxRetries: 1,
+        retryWhen,
+      },
+    });
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(retryWhen).toHaveBeenCalledWith(error, 1);
+    expect(items).toEqual([1]);
+    expect(pages).toBe(1);
+  });
+
+  it('throws the last fetch error after maxRetries is exhausted', async () => {
+    const error = new Error('still failing');
+    const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => Promise.reject(error));
+    const onPage = jest.fn();
+
+    await expect(infinityFetch({
+      fetcher,
+      initialParams: { cursor: 0 },
+      isLastPage: (r) => r.done,
+      getNextParams: (r) => ({ cursor: r.next }),
+      getItems: (r) => r.items,
+      onPage,
+      retry: {
+        maxRetries: 2,
+      },
+    })).rejects.toThrow(error);
+
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(onPage).not.toHaveBeenCalled();
+  });
+
+  it('does not retry when retryWhen returns false', async () => {
+    const error = new Error('not retryable');
+    const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => Promise.reject(error));
+    const retryWhen = jest.fn(() => false);
+
+    await expect(infinityFetch({
+      fetcher,
+      initialParams: { cursor: 0 },
+      isLastPage: (r) => r.done,
+      getNextParams: (r) => ({ cursor: r.next }),
+      getItems: (r) => r.items,
+      retry: {
+        maxRetries: 3,
+        retryWhen,
+      },
+    })).rejects.toThrow(error);
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(retryWhen).toHaveBeenCalledWith(error, 1);
+  });
+
+  it('waits retry delay before retrying a failed page fetch', async () => {
+    jest.useFakeTimers();
+    const error = new Error('temporary failure');
+    const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => {
+      if (fetcher.mock.calls.length === 1) {
+        return Promise.reject(error);
+      }
+
+      return Promise.resolve({ items: [1], done: true, next: 0 });
+    });
+    const retryDelay = jest.fn(() => 500);
+
+    const promise = infinityFetch({
+      fetcher,
+      initialParams: { cursor: 0 },
+      isLastPage: (r) => r.done,
+      getNextParams: (r) => ({ cursor: r.next }),
+      getItems: (r) => r.items,
+      retry: {
+        maxRetries: 1,
+        delay: retryDelay,
+      },
+    });
+
+    await jest.runAllTimersAsync();
+    await promise;
+
+    expect(retryDelay).toHaveBeenCalledWith(1, error);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    jest.useRealTimers();
+  });
 });
 
 // --- pagedFetch ---
@@ -276,5 +379,27 @@ describe('pagedFetch', () => {
     await expect(pagedFetch({ fetcher })).rejects.toThrow(
       'Missing nextPageStart in non-final paged response'
     );
+  });
+
+  it('passes retry config through to infinityFetch', async () => {
+    const page = makePagedResponse(['a'], true);
+    const fetcher = jest.fn((_: PagedParams): Promise<PagedResponse<string>> => {
+      if (fetcher.mock.calls.length === 1) {
+        return Promise.reject(new Error('temporary failure'));
+      }
+
+      return Promise.resolve(page);
+    });
+
+    const { items, pages } = await pagedFetch({
+      fetcher,
+      retry: {
+        maxRetries: 1,
+      },
+    });
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(items).toEqual(['a']);
+    expect(pages).toBe(1);
   });
 });

@@ -5,6 +5,15 @@ export type InfinityFetchResult<TItem> = {
   pages: number;
 };
 
+export type InfinityFetchRetryConfig = {
+  /** Optional: maximum retry attempts per page */
+  maxRetries?: number;
+  /** Optional: milliseconds to wait before each retry */
+  delay?: number | ((attempt: number, error: unknown) => number);
+  /** Optional: returns true when a failed fetch should be retried */
+  retryWhen?: (error: unknown, attempt: number) => boolean | Promise<boolean>;
+};
+
 export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = {
   /** The function that fetches a single page */
   fetcher: (params: TParams) => Promise<TResponse>;
@@ -26,7 +35,47 @@ export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = {
   maxPages?: number;
   /** Optional: milliseconds to wait between each page fetch */
   delay?: number;
+  /** Optional: retry failed page fetches */
+  retry?: InfinityFetchRetryConfig;
 };
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function fetchWithRetry<TResponse, TParams extends object>(
+  fetcher: (params: TParams) => Promise<TResponse>,
+  params: TParams,
+  retry: InfinityFetchRetryConfig | undefined
+): Promise<TResponse> {
+  const maxRetries = retry?.maxRetries ?? 0;
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await fetcher(params);
+    } catch (error) {
+      attempt++;
+
+      if (attempt > maxRetries) {
+        throw error;
+      }
+
+      const shouldRetry = retry?.retryWhen ? await retry.retryWhen(error, attempt) : true;
+
+      if (!shouldRetry) {
+        throw error;
+      }
+
+      const retryDelay =
+        typeof retry?.delay === 'function' ? retry.delay(attempt, error) : retry?.delay;
+
+      if (retryDelay) {
+        await wait(retryDelay);
+      }
+    }
+  }
+}
 
 export async function infinityFetch<TResponse, TParams extends object, TItem>(
   config: InfinityFetchConfig<TResponse, TParams, TItem>
@@ -42,6 +91,7 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
     onPage,
     maxPages = Infinity,
     delay,
+    retry,
   } = config;
 
   onStart?.();
@@ -51,7 +101,7 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
   let pageIndex = 0;
 
   while (pageIndex < maxPages) {
-    const response = await fetcher(params);
+    const response = await fetchWithRetry(fetcher, params, retry);
     const pageItems = getItems(response);
     items.push(...pageItems);
     onPage?.(pageItems, response, pageIndex);
@@ -62,7 +112,7 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
 
     params = getNextParams(response, params);
 
-    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+    if (delay) await wait(delay);
   }
 
   const result = { items, pages: pageIndex };

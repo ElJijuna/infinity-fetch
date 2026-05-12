@@ -134,6 +134,15 @@ const { items, pages } = await infinityFetch({
   // Optional: milliseconds to wait between each page fetch
   delay: 200,
 
+  // Optional: retry failed page fetches
+  retry: {
+    maxRetries: 3,
+    delay: (attempt) => attempt * 500,
+    retryWhen: (error) => {
+      return error instanceof Response && error.status >= 500;
+    },
+  },
+
   // Optional: called once before the first fetch
   onStart: () => setLoading(true),
 
@@ -164,6 +173,7 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 | `limit` | `number` | `100` | Items per page |
 | `maxPages` | `number` | `Infinity` | Maximum pages to fetch (safety limit) |
 | `delay` | `number` | — | Milliseconds to wait between each page fetch |
+| `retry` | `InfinityFetchRetryConfig` | — | Retry failed page fetches |
 | `onStart` | `() => void` | — | Called once before the first fetch |
 | `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
 | `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
@@ -200,6 +210,7 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 | `getItems` | `(response: TResponse) => TItem[]` | required | Extracts items from a response |
 | `maxPages` | `number` | `Infinity` | Maximum pages to fetch (safety limit) |
 | `delay` | `number` | — | Milliseconds to wait between each page fetch |
+| `retry` | `InfinityFetchRetryConfig` | — | Retry failed page fetches |
 | `onStart` | `() => void` | — | Called once before the first fetch |
 | `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
 | `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
@@ -210,6 +221,14 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 type InfinityFetchResult<TItem> = {
   items: TItem[];  // all items collected across every page
   pages: number;   // total number of pages fetched
+};
+```
+
+```typescript
+type InfinityFetchRetryConfig = {
+  maxRetries?: number;
+  delay?: number | ((attempt: number, error: unknown) => number);
+  retryWhen?: (error: unknown, attempt: number) => boolean | Promise<boolean>;
 };
 ```
 

@@ -1,4 +1,4 @@
-import { infinityFetch, InfinityFetchResult } from './infinityFetch.js';
+import { infinityFetch, InfinityFetchResult, InfinityFetchRetryConfig } from './infinityFetch.js';
 
 /** Common shape for Bitbucket-style paginated APIs */
 export type PagedResponse<TItem> = {
@@ -29,6 +29,8 @@ export type PagedFetchConfig<TItem> = {
   maxPages?: number;
   /** Optional: milliseconds to wait between each page fetch */
   delay?: number;
+  /** Optional: retry failed page fetches */
+  retry?: InfinityFetchRetryConfig;
 };
 
 /**
@@ -62,5 +64,6 @@ export function pagedFetch<TItem>(config: PagedFetchConfig<TItem>): Promise<Infi
     onPage: config.onPage,
     maxPages: config.maxPages,
     delay: config.delay,
+    retry: config.retry,
   });
 }
