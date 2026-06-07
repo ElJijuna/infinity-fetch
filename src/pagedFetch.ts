@@ -1,4 +1,8 @@
-import { infinityFetch, InfinityFetchResult, InfinityFetchRetryConfig } from './infinityFetch.js';
+import {
+  type InfinityFetchResult,
+  type InfinityFetchRetryConfig,
+  infinityFetch,
+} from './infinityFetch.js';
 
 /** Common shape for Bitbucket-style paginated APIs */
 export type PagedResponse<TItem> = {
@@ -43,7 +47,9 @@ export type PagedFetchConfig<TItem> = {
  *   limit: 100,
  * });
  */
-export function pagedFetch<TItem>(config: PagedFetchConfig<TItem>): Promise<InfinityFetchResult<TItem>> {
+export function pagedFetch<TItem>(
+  config: PagedFetchConfig<TItem>,
+): Promise<InfinityFetchResult<TItem>> {
   return infinityFetch<PagedResponse<TItem>, PagedParams, TItem>({
     fetcher: config.fetcher,
     initialParams: { start: 0, limit: config.limit ?? 100 },

@@ -1,6 +1,6 @@
-import { describe, it, expect, jest } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
 import { infinityFetch } from './infinityFetch.js';
-import { pagedFetch, PagedResponse, PagedParams } from './pagedFetch.js';
+import { type PagedParams, type PagedResponse, pagedFetch } from './pagedFetch.js';
 
 type CursorResponse = { items: number[]; done: boolean; next: number };
 type CursorParams = { cursor: number };
@@ -72,7 +72,9 @@ describe('infinityFetch', () => {
 
   it('stops at maxPages even if isLastPage never returns true', async () => {
     const infinite: CursorResponse = { items: [1], done: false, next: 1 };
-    const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => Promise.resolve(infinite));
+    const fetcher = jest.fn(
+      (_: CursorParams): Promise<CursorResponse> => Promise.resolve(infinite),
+    );
 
     const { items, pages } = await infinityFetch({
       fetcher,
@@ -117,7 +119,10 @@ describe('infinityFetch', () => {
     ]);
 
     await infinityFetch({
-      fetcher: (params) => { order.push('fetch'); return fetcher(params); },
+      fetcher: (params) => {
+        order.push('fetch');
+        return fetcher(params);
+      },
       initialParams: { cursor: 0 },
       isLastPage: (r) => r.done,
       getNextParams: (r) => ({ cursor: r.next }),
@@ -227,17 +232,19 @@ describe('infinityFetch', () => {
     const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => Promise.reject(error));
     const onPage = jest.fn();
 
-    await expect(infinityFetch({
-      fetcher,
-      initialParams: { cursor: 0 },
-      isLastPage: (r) => r.done,
-      getNextParams: (r) => ({ cursor: r.next }),
-      getItems: (r) => r.items,
-      onPage,
-      retry: {
-        maxRetries: 2,
-      },
-    })).rejects.toThrow(error);
+    await expect(
+      infinityFetch({
+        fetcher,
+        initialParams: { cursor: 0 },
+        isLastPage: (r) => r.done,
+        getNextParams: (r) => ({ cursor: r.next }),
+        getItems: (r) => r.items,
+        onPage,
+        retry: {
+          maxRetries: 2,
+        },
+      }),
+    ).rejects.toThrow(error);
 
     expect(fetcher).toHaveBeenCalledTimes(3);
     expect(onPage).not.toHaveBeenCalled();
@@ -248,17 +255,19 @@ describe('infinityFetch', () => {
     const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => Promise.reject(error));
     const retryWhen = jest.fn(() => false);
 
-    await expect(infinityFetch({
-      fetcher,
-      initialParams: { cursor: 0 },
-      isLastPage: (r) => r.done,
-      getNextParams: (r) => ({ cursor: r.next }),
-      getItems: (r) => r.items,
-      retry: {
-        maxRetries: 3,
-        retryWhen,
-      },
-    })).rejects.toThrow(error);
+    await expect(
+      infinityFetch({
+        fetcher,
+        initialParams: { cursor: 0 },
+        isLastPage: (r) => r.done,
+        getNextParams: (r) => ({ cursor: r.next }),
+        getItems: (r) => r.items,
+        retry: {
+          maxRetries: 3,
+          retryWhen,
+        },
+      }),
+    ).rejects.toThrow(error);
 
     expect(fetcher).toHaveBeenCalledTimes(1);
     expect(retryWhen).toHaveBeenCalledWith(error, 1);
@@ -303,7 +312,7 @@ describe('pagedFetch', () => {
   function makePagedResponse<T>(
     values: T[],
     isLastPage: boolean,
-    nextPageStart?: number
+    nextPageStart?: number,
   ): PagedResponse<T> {
     return { values, isLastPage, nextPageStart, size: values.length, limit: 100, start: 0 };
   }
@@ -340,7 +349,9 @@ describe('pagedFetch', () => {
 
   it('respects maxPages limit', async () => {
     const page = makePagedResponse([1], false, 100);
-    const fetcher = jest.fn((_: PagedParams): Promise<PagedResponse<number>> => Promise.resolve(page));
+    const fetcher = jest.fn(
+      (_: PagedParams): Promise<PagedResponse<number>> => Promise.resolve(page),
+    );
 
     const { items, pages } = await pagedFetch({ fetcher, maxPages: 2 });
 
@@ -377,7 +388,7 @@ describe('pagedFetch', () => {
     const fetcher = makePagedFetcher([makePagedResponse(['a'], false)]);
 
     await expect(pagedFetch({ fetcher })).rejects.toThrow(
-      'Missing nextPageStart in non-final paged response'
+      'Missing nextPageStart in non-final paged response',
     );
   });
 

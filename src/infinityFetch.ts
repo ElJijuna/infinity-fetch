@@ -46,7 +46,7 @@ function wait(milliseconds: number): Promise<void> {
 async function fetchWithRetry<TResponse, TParams extends object>(
   fetcher: (params: TParams) => Promise<TResponse>,
   params: TParams,
-  retry: InfinityFetchRetryConfig | undefined
+  retry: InfinityFetchRetryConfig | undefined,
 ): Promise<TResponse> {
   const maxRetries = retry?.maxRetries ?? 0;
   let attempt = 0;
@@ -78,7 +78,7 @@ async function fetchWithRetry<TResponse, TParams extends object>(
 }
 
 export async function infinityFetch<TResponse, TParams extends object, TItem>(
-  config: InfinityFetchConfig<TResponse, TParams, TItem>
+  config: InfinityFetchConfig<TResponse, TParams, TItem>,
 ): Promise<InfinityFetchResult<TItem>> {
   const {
     fetcher,
@@ -108,11 +108,15 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
 
     pageIndex++;
 
-    if (isLastPage(response)) break;
+    if (isLastPage(response)) {
+      break;
+    }
 
     params = getNextParams(response, params);
 
-    if (delay) await wait(delay);
+    if (delay) {
+      await wait(delay);
+    }
   }
 
   const result = { items, pages: pageIndex };
