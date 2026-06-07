@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/ElJijuna/infinity-fetch/compare/v1.3.0...v1.3.1) (2026-06-07)
+
+
+### Bug Fixes
+
+* adopt super-configs tooling and update files syntax ([3734e74](https://github.com/ElJijuna/infinity-fetch/commit/3734e74e6c7238e09843a42cc54e207f75ae766a))
+
 # [1.3.0](https://github.com/ElJijuna/infinity-fetch/compare/v1.2.0...v1.3.0) (2026-05-12)
 
 
