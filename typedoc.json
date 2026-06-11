@@ -1,13 +1,11 @@
 {
+  "extends": "./node_modules/super-configs/typedoc.json",
   "entryPoints": ["src/index.ts"],
   "out": "docs",
   "name": "infinity-fetch",
   "readme": "README.md",
-  "includeVersion": true,
   "navigationLinks": {
     "GitHub": "https://github.com/ElJijuna/infinity-fetch",
     "npm": "https://www.npmjs.com/package/infinity-fetch"
-  },
-  "categorizeByGroup": true,
-  "sort": ["source-order"]
+  }
 }
