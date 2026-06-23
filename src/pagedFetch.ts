@@ -1,51 +1,18 @@
-import {
-  type InfinityFetchResult,
-  type InfinityFetchRetryConfig,
-  infinityFetch,
-} from './infinityFetch.js';
-
-/** Common shape for offset-based paginated APIs */
-export type PagedResponse<TItem> = {
-  values: TItem[];
-  isLastPage: boolean;
-  nextPageStart?: number;
-  size: number;
-  limit: number;
-  start: number;
-};
-
-export type PagedParams = {
-  start: number;
-  limit: number;
-};
-
-export type PagedFetchConfig<TItem> = {
-  fetcher: (params: PagedParams) => Promise<PagedResponse<TItem>>;
-  /** Items per page. Defaults to 100. */
-  limit?: number;
-  /** Optional: called once before the first fetch starts */
-  onStart?: () => void;
-  /** Optional: called once after all pages have been fetched */
-  onEnd?: (result: InfinityFetchResult<TItem>) => void;
-  /** Called after each page is fetched */
-  onPage?: (items: TItem[], response: PagedResponse<TItem>, pageIndex: number) => void;
-  /** Maximum number of pages to fetch (safety limit) */
-  maxPages?: number;
-  /** Optional: milliseconds to wait between each page fetch */
-  delay?: number;
-  /** Optional: retry failed page fetches */
-  retry?: InfinityFetchRetryConfig;
-  /** Optional: signal to abort pagination early and return partial results */
-  signal?: AbortSignal;
-};
+import { infinityFetch } from './infinityFetch.js';
+import type {
+  InfinityFetchResult,
+  PagedFetchConfig,
+  PagedParams,
+  PagedResponse,
+} from './types/index.js';
 
 /**
  * Convenience wrapper for offset-based paginated APIs.
  * Auto-iterates using `isLastPage` and `nextPageStart` from the response.
  *
  * @example
- * const commits = await pagedFetch({
- *   fetcher: (params) => api.project('my-project').repo('my-repo').commits(params),
+ * const result = await pagedFetch({
+ *   fetcher: (params) => api.items(params),
  *   limit: 100,
  * });
  */

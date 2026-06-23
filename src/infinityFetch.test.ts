@@ -1,6 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { InfinityFetchError, infinityFetch } from './infinityFetch.js';
-import { type PagedParams, type PagedResponse, pagedFetch } from './pagedFetch.js';
+import { InfinityFetchError } from './InfinityFetchError.js';
+import { infinityFetch } from './infinityFetch.js';
+import { pagedFetch } from './pagedFetch.js';
+import type { PagedParams, PagedResponse } from './types/index.js';
 
 type CursorResponse = { items: number[]; done: boolean; next: number };
 type CursorParams = { cursor: number };
