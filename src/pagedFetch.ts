@@ -4,7 +4,7 @@ import {
   infinityFetch,
 } from './infinityFetch.js';
 
-/** Common shape for Bitbucket-style paginated APIs */
+/** Common shape for offset-based paginated APIs */
 export type PagedResponse<TItem> = {
   values: TItem[];
   isLastPage: boolean;
@@ -38,7 +38,7 @@ export type PagedFetchConfig<TItem> = {
 };
 
 /**
- * Convenience wrapper for Bitbucket-style paginated APIs.
+ * Convenience wrapper for offset-based paginated APIs.
  * Auto-iterates using `isLastPage` and `nextPageStart` from the response.
  *
  * @example

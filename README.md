@@ -69,7 +69,7 @@ npm install infinity-fetch
 
 ## Usage
 
-### `pagedFetch` — for Bitbucket-style paginated APIs
+### `pagedFetch` — for offset-based paginated APIs
 
 If your API returns `{ values, isLastPage, nextPageStart, size, limit, start }`, use the built-in helper:
 
