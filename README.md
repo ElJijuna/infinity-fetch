@@ -237,7 +237,7 @@ try {
 | `retry` | `InfinityFetchRetryConfig` | — | Retry failed page fetches |
 | `signal` | `AbortSignal` | — | Cancel pagination and return partial results |
 | `onStart` | `() => void` | — | Called once before the first fetch |
-| `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
+| `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done, or when cancelled — receives `{ items, pages, aborted: true }` on cancellation |
 | `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
 
 **`PagedParams`**
@@ -259,6 +259,8 @@ try {
 
 **Returns:** `Promise<InfinityFetchResult<TItem>>`
 
+**Throws:** `InfinityFetchError` on fetch failure. Also throws if a non-final page response is missing `nextPageStart`.
+
 ---
 
 ### `cursorFetch<TResponse, TItem>(config)`
@@ -273,7 +275,7 @@ try {
 | `retry` | `InfinityFetchRetryConfig` | — | Retry failed page fetches |
 | `signal` | `AbortSignal` | — | Cancel pagination and return partial results |
 | `onStart` | `() => void` | — | Called once before the first fetch |
-| `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
+| `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done, or when cancelled — receives `{ items, pages, aborted: true }` on cancellation |
 | `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
 
 **`CursorParams`**
@@ -282,6 +284,8 @@ try {
 ```
 
 **Returns:** `Promise<InfinityFetchResult<TItem>>`
+
+**Throws:** `InfinityFetchError` on fetch failure (after retries are exhausted).
 
 ---
 
@@ -299,10 +303,12 @@ try {
 | `retry` | `InfinityFetchRetryConfig` | — | Retry failed page fetches |
 | `signal` | `AbortSignal` | — | Cancel pagination and return partial results |
 | `onStart` | `() => void` | — | Called once before the first fetch |
-| `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
+| `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done, or when cancelled — receives `{ items, pages, aborted: true }` on cancellation |
 | `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
 
 **Returns:** `Promise<InfinityFetchResult<TItem>>`
+
+**Throws:** `InfinityFetchError` on fetch failure (after retries are exhausted).
 
 ---
 
@@ -316,13 +322,13 @@ type InfinityFetchResult<TItem> = {
 };
 ```
 
-```typescript
-type InfinityFetchRetryConfig = {
-  maxRetries?: number;
-  delay?: number | ((attempt: number, error: unknown) => number);
-  retryWhen?: (error: unknown, attempt: number) => boolean | Promise<boolean>;
-};
-```
+**`InfinityFetchRetryConfig`**
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `maxRetries` | `number` | `0` | Extra attempts per page. With `0`, any failure throws immediately. Total attempts = `maxRetries + 1`. |
+| `delay` | `number \| (attempt, error) => number` | — | Wait between retries of the **same page** (`attempt` is 1-based). Different from `config.delay`, which separates consecutive pages. |
+| `retryWhen` | `(error, attempt) => boolean \| Promise<boolean>` | retry all errors | If it returns `false`, the error is thrown immediately without exhausting `maxRetries`. `attempt` is 1-based. |
 
 ```typescript
 class InfinityFetchError<TParams, TItem> extends Error {
@@ -331,6 +337,23 @@ class InfinityFetchError<TParams, TItem> extends Error {
   readonly itemsSoFar: TItem[]; // items collected before the failure
   readonly cause: unknown;      // original error
 }
+```
+
+### Type exports
+
+All public types are available as named imports:
+
+```typescript
+import type {
+  CursorFetchConfig,
+  CursorParams,
+  InfinityFetchConfig,
+  InfinityFetchResult,
+  InfinityFetchRetryConfig,
+  PagedFetchConfig,
+  PagedParams,
+  PagedResponse,
+} from 'infinity-fetch';
 ```
 
 ---
@@ -364,7 +387,6 @@ git commit -m "feat: add onPage callback to pagedFetch"
 git commit -m "fix: handle missing nextPageStart gracefully"
 git commit -m "feat!: rename items field to data"
 ```
-
 
 ## Changelog
 
