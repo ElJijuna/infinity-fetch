@@ -662,6 +662,48 @@ describe('InfinityFetchError', () => {
     expect(err).toBeInstanceOf(InfinityFetchError);
     expect((err as InfinityFetchError<TestParams, number>).cause).toBe(cause);
   });
+
+  it('does not double-wrap an InfinityFetchError thrown by a callback', async () => {
+    const inner = new InfinityFetchError(0, { cursor: 0 }, [], new Error('inner'));
+    const fetcher = jest.fn(
+      (_: { cursor: number }): Promise<CursorResponse> =>
+        Promise.resolve({ items: [], done: false, next: 1 }),
+    );
+
+    let err: unknown;
+
+    try {
+      await infinityFetch({
+        ...baseConfig,
+        fetcher,
+        getItems: () => {
+          throw inner;
+        },
+      });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).toBe(inner);
+  });
+
+  it('uses String(cause) in the message when cause is not an Error', async () => {
+    const fetcher = jest.fn(
+      (_: { cursor: number }): Promise<CursorResponse> => Promise.reject('timeout'),
+    );
+
+    let err: unknown;
+
+    try {
+      await infinityFetch({ ...baseConfig, fetcher });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).toBeInstanceOf(InfinityFetchError);
+    expect((err as InfinityFetchError<TestParams, number>).cause).toBe('timeout');
+    expect((err as InfinityFetchError<TestParams, number>).message).toContain('timeout');
+  });
 });
 
 // --- cursorFetch ---
