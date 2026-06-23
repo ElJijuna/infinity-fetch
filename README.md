@@ -25,24 +25,18 @@ Automatically re-invokes a fetch function across pages until a stop condition is
                     │                   infinityFetch                     │
                     └────────────────────────┬────────────────────────────┘
                                              │
-                         initialParams = { start: 0, limit: 100 }
-                                             │
                                              ▼
                     ┌────────────────────────────────────────┐
                     │          fetcher(params)               │
-                    │   api.project('x').repo('y').commits() │
                     └────────────────┬───────────────────────┘
                                      │
                     ┌────────────────▼───────────────────────┐
-                    │             Response                    │
-                    │  { values, isLastPage, nextPageStart,  │
-                    │    size, limit, start }                 │
+                    │             Response                   │
                     └──────┬─────────────────────┬───────────┘
                            │                     │
                     isLastPage?                  no
                            │                     │
                           yes            getNextParams()
-                           │          { start: nextPageStart }
                            │                     │
                            │                     ▼
                            │        ┌────────────────────────┐
@@ -57,6 +51,14 @@ Automatically re-invokes a fetch function across pages until a stop condition is
               └──────────────────────────────────────┘
 ```
 
+Three convenience wrappers sit on top of `infinityFetch`:
+
+| Helper | Pagination style |
+|---|---|
+| `pagedFetch` | Offset-based — `{ start, limit, isLastPage, nextPageStart }` |
+| `cursorFetch` | Cursor/token-based — `getCursor` returns the next cursor or `null` |
+| `infinityFetch` | Generic — you supply `isLastPage` and `getNextParams` |
+
 ---
 
 ## Installation
@@ -69,7 +71,7 @@ npm install infinity-fetch
 
 ## Usage
 
-### `pagedFetch` — for offset-based paginated APIs
+### `pagedFetch` — offset-based pagination
 
 If your API returns `{ values, isLastPage, nextPageStart, size, limit, start }`, use the built-in helper:
 
@@ -91,12 +93,42 @@ const { items, pages } = await pagedFetch({
   fetcher: (params) => api.project('my-project').repo('my-repo').commits(params),
   limit: 100,
   maxPages: 20,
-  delay: 200, // wait 200ms between each page fetch
+  delay: 200,
   onStart: () => setLoading(true),
   onEnd:   () => setLoading(false),
   onPage: (pageItems, _response, pageIndex) => {
     console.log(`Page ${pageIndex + 1}: ${pageItems.length} commits`);
   },
+});
+```
+
+---
+
+### `cursorFetch` — cursor-based pagination
+
+Use this when your API returns a cursor (or token) to request the next page, and `null`/`undefined` when there are no more pages:
+
+```typescript
+import { cursorFetch } from 'infinity-fetch';
+
+const { items, pages } = await cursorFetch({
+  fetcher: ({ cursor }) => github.issues({ cursor, perPage: 50 }),
+  getCursor: (r) => r.pageInfo.endCursor ?? null,
+  getItems:  (r) => r.data,
+});
+```
+
+With full options:
+
+```typescript
+const { items, pages } = await cursorFetch({
+  fetcher: ({ cursor }) => stripe.charges.list({ starting_after: cursor ?? undefined }),
+  getCursor: (r) => r.has_more ? r.data.at(-1)?.id ?? null : null,
+  getItems:  (r) => r.data,
+  maxPages: 50,
+  delay: 100,
+  onEnd: ({ items, pages }) => console.log(`${items.length} charges in ${pages} pages`),
+  retry: { maxRetries: 2 },
 });
 ```
 
@@ -110,56 +142,85 @@ Use this when your API has a different response shape:
 import { infinityFetch } from 'infinity-fetch';
 
 const { items, pages } = await infinityFetch({
-  // The function that performs a single page request
   fetcher: (params) => github.issues.list(params),
-
-  // Parameters for the very first request
   initialParams: { page: 1, per_page: 50 },
-
-  // When to stop — return true on the last page
   isLastPage: (response) => response.data.length < 50,
-
-  // How to compute params for the next page
   getNextParams: (_response, currentParams) => ({
     ...currentParams,
     page: currentParams.page + 1,
   }),
-
-  // Which field holds the items
   getItems: (response) => response.data,
-
-  // Optional: safety cap on number of pages
   maxPages: 100,
-
-  // Optional: milliseconds to wait between each page fetch
   delay: 200,
-
-  // Optional: retry failed page fetches
   retry: {
     maxRetries: 3,
     delay: (attempt) => attempt * 500,
-    retryWhen: (error) => {
-      return error instanceof Response && error.status >= 500;
-    },
+    retryWhen: (error) => error instanceof Response && error.status >= 500,
   },
-
-  // Optional: called once before the first fetch
   onStart: () => setLoading(true),
-
-  // Optional: called once after all pages are done — receives the final result
   onEnd: ({ items, pages }) => {
     setLoading(false);
     console.log(`Done: ${items.length} items across ${pages} pages`);
   },
-
-  // Optional: called after each individual page
   onPage: (pageItems, _response, pageIndex) => {
     console.log(`Page ${pageIndex + 1}: ${pageItems.length} items`);
   },
 });
-
-console.log(`${items.length} issues fetched across ${pages} pages`);
 ```
+
+---
+
+### Cancellation with `AbortSignal`
+
+All three helpers accept a `signal` option. When the signal fires, pagination stops immediately and returns whatever items were collected up to that point — no error is thrown.
+
+```typescript
+const controller = new AbortController();
+
+setTimeout(() => controller.abort(), 3000); // cancel after 3 seconds
+
+const { items, pages, aborted } = await cursorFetch({
+  fetcher: ({ cursor }) => api.items({ cursor }),
+  getCursor: (r) => r.nextCursor ?? null,
+  getItems:  (r) => r.data,
+  signal: controller.signal,
+});
+
+if (aborted) {
+  console.log(`Cancelled — got ${items.length} items across ${pages} pages`);
+}
+```
+
+`aborted` is `true` in the result only when the signal fired. When pagination completes normally, the field is absent.
+
+---
+
+### Error handling with `InfinityFetchError`
+
+When a fetch fails (after exhausting retries), `infinityFetch` throws an `InfinityFetchError` with full context about where the failure occurred:
+
+```typescript
+import { infinityFetch, InfinityFetchError } from 'infinity-fetch';
+
+try {
+  const { items } = await infinityFetch({ /* ... */ });
+} catch (error) {
+  if (error instanceof InfinityFetchError) {
+    console.error(`Failed on page ${error.pageIndex}`);
+    console.error(`Params at failure:`, error.params);
+    console.error(`Items collected before failure:`, error.itemsSoFar);
+    console.error(`Root cause:`, error.cause);
+  }
+}
+```
+
+| Property | Type | Description |
+|---|---|---|
+| `pageIndex` | `number` | Zero-based index of the page that failed |
+| `params` | `TParams` | Parameters that were passed to the fetcher |
+| `itemsSoFar` | `TItem[]` | All items collected from pages before the failure |
+| `cause` | `unknown` | The original error thrown by the fetcher |
+| `message` | `string` | `"infinity-fetch failed on page N: <cause message>"` |
 
 ---
 
@@ -174,6 +235,7 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 | `maxPages` | `number` | `Infinity` | Maximum pages to fetch (safety limit) |
 | `delay` | `number` | — | Milliseconds to wait between each page fetch |
 | `retry` | `InfinityFetchRetryConfig` | — | Retry failed page fetches |
+| `signal` | `AbortSignal` | — | Cancel pagination and return partial results |
 | `onStart` | `() => void` | — | Called once before the first fetch |
 | `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
 | `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
@@ -199,6 +261,30 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 
 ---
 
+### `cursorFetch<TResponse, TItem>(config)`
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `fetcher` | `(params: CursorParams) => Promise<TResponse>` | required | Function that fetches one page |
+| `getCursor` | `(response: TResponse) => string \| null \| undefined` | required | Returns the next cursor, or `null`/`undefined` on the last page |
+| `getItems` | `(response: TResponse) => TItem[]` | required | Extracts items from a response |
+| `maxPages` | `number` | `Infinity` | Maximum pages to fetch (safety limit) |
+| `delay` | `number` | — | Milliseconds to wait between each page fetch |
+| `retry` | `InfinityFetchRetryConfig` | — | Retry failed page fetches |
+| `signal` | `AbortSignal` | — | Cancel pagination and return partial results |
+| `onStart` | `() => void` | — | Called once before the first fetch |
+| `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
+| `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
+
+**`CursorParams`**
+```typescript
+{ cursor: string | null }  // null on the first request (no prior cursor)
+```
+
+**Returns:** `Promise<InfinityFetchResult<TItem>>`
+
+---
+
 ### `infinityFetch<TResponse, TParams, TItem>(config)`
 
 | Option | Type | Default | Description |
@@ -211,16 +297,22 @@ console.log(`${items.length} issues fetched across ${pages} pages`);
 | `maxPages` | `number` | `Infinity` | Maximum pages to fetch (safety limit) |
 | `delay` | `number` | — | Milliseconds to wait between each page fetch |
 | `retry` | `InfinityFetchRetryConfig` | — | Retry failed page fetches |
+| `signal` | `AbortSignal` | — | Cancel pagination and return partial results |
 | `onStart` | `() => void` | — | Called once before the first fetch |
 | `onEnd` | `(result: InfinityFetchResult<TItem>) => void` | — | Called once after all pages are done |
 | `onPage` | `(items, response, pageIndex) => void` | — | Called after each individual page |
 
 **Returns:** `Promise<InfinityFetchResult<TItem>>`
 
+---
+
+### Shared types
+
 ```typescript
 type InfinityFetchResult<TItem> = {
-  items: TItem[];  // all items collected across every page
-  pages: number;   // total number of pages fetched
+  items: TItem[];     // all items collected across every page
+  pages: number;      // total number of pages fetched
+  aborted?: true;     // present only when an AbortSignal fired
 };
 ```
 
@@ -230,6 +322,15 @@ type InfinityFetchRetryConfig = {
   delay?: number | ((attempt: number, error: unknown) => number);
   retryWhen?: (error: unknown, attempt: number) => boolean | Promise<boolean>;
 };
+```
+
+```typescript
+class InfinityFetchError<TParams, TItem> extends Error {
+  readonly pageIndex: number;   // zero-based index of the failed page
+  readonly params: TParams;     // params passed to the fetcher
+  readonly itemsSoFar: TItem[]; // items collected before the failure
+  readonly cause: unknown;      // original error
+}
 ```
 
 ---
@@ -264,21 +365,6 @@ git commit -m "fix: handle missing nextPageStart gracefully"
 git commit -m "feat!: rename items field to data"
 ```
 
-### Setting up repository secrets
-
-For the release pipeline to work, add these secrets in **Settings → Secrets and variables → Actions**:
-
-| Secret | Description |
-|---|---|
-| `NPM_TOKEN` | npm automation token (`npm token create --type automation`) |
-
-`GITHUB_TOKEN` is provided automatically by GitHub Actions — no setup needed.
-
-### Enabling GitHub Pages
-
-Go to **Settings → Pages** and set the source to **GitHub Actions**.
-
----
 
 ## Changelog
 

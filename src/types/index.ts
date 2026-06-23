@@ -1,3 +1,5 @@
+export type { CursorFetchConfig } from './CursorFetchConfig.js';
+export type { CursorParams } from './CursorParams.js';
 export type { InfinityFetchConfig } from './InfinityFetchConfig.js';
 export type { InfinityFetchResult } from './InfinityFetchResult.js';
 export type { InfinityFetchRetryConfig } from './InfinityFetchRetryConfig.js';
