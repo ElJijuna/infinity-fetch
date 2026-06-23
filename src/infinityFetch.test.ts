@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { infinityFetch } from './infinityFetch.js';
+import { InfinityFetchError, infinityFetch } from './infinityFetch.js';
 import { type PagedParams, type PagedResponse, pagedFetch } from './pagedFetch.js';
 
 type CursorResponse = { items: number[]; done: boolean; next: number };
@@ -7,6 +7,7 @@ type CursorParams = { cursor: number };
 
 function makeCursorFetcher(pages: CursorResponse[]) {
   let call = 0;
+
   return jest.fn((_params: CursorParams): Promise<CursorResponse> => {
     return Promise.resolve(pages[call++]);
   });
@@ -17,7 +18,6 @@ function makeCursorFetcher(pages: CursorResponse[]) {
 describe('infinityFetch', () => {
   it('fetches a single page when isLastPage is true on first response', async () => {
     const fetcher = makeCursorFetcher([{ items: [1, 2, 3], done: true, next: 0 }]);
-
     const { items, pages } = await infinityFetch({
       fetcher,
       initialParams: { cursor: 0 },
@@ -38,7 +38,6 @@ describe('infinityFetch', () => {
       { items: [3, 4], done: false, next: 4 },
       { items: [5], done: true, next: 0 },
     ]);
-
     const { items, pages } = await infinityFetch({
       fetcher,
       initialParams: { cursor: 0 },
@@ -75,7 +74,6 @@ describe('infinityFetch', () => {
     const fetcher = jest.fn(
       (_: CursorParams): Promise<CursorResponse> => Promise.resolve(infinite),
     );
-
     const { items, pages } = await infinityFetch({
       fetcher,
       initialParams: { cursor: 0 },
@@ -121,6 +119,7 @@ describe('infinityFetch', () => {
     await infinityFetch({
       fetcher: (params) => {
         order.push('fetch');
+
         return fetcher(params);
       },
       initialParams: { cursor: 0 },
@@ -163,9 +162,9 @@ describe('infinityFetch', () => {
     const timestamps: number[] = [];
     const wrappedFetcher = jest.fn((params: CursorParams) => {
       timestamps.push(Date.now());
+
       return fetcher(params);
     });
-
     const promise = infinityFetch({
       fetcher: wrappedFetcher,
       initialParams: { cursor: 0 },
@@ -185,7 +184,6 @@ describe('infinityFetch', () => {
 
   it('returns empty items and pages=1 when the first page has no items', async () => {
     const fetcher = makeCursorFetcher([{ items: [], done: true, next: 0 }]);
-
     const { items, pages } = await infinityFetch({
       fetcher,
       initialParams: { cursor: 0 },
@@ -208,7 +206,6 @@ describe('infinityFetch', () => {
       return Promise.resolve({ items: [params.cursor + 1], done: true, next: 0 });
     });
     const retryWhen = jest.fn(() => true);
-
     const { items, pages } = await infinityFetch({
       fetcher,
       initialParams: { cursor: 0 },
@@ -227,9 +224,9 @@ describe('infinityFetch', () => {
     expect(pages).toBe(1);
   });
 
-  it('throws the last fetch error after maxRetries is exhausted', async () => {
-    const error = new Error('still failing');
-    const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => Promise.reject(error));
+  it('throws InfinityFetchError after maxRetries is exhausted', async () => {
+    const cause = new Error('still failing');
+    const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => Promise.reject(cause));
     const onPage = jest.fn();
 
     await expect(
@@ -244,19 +241,21 @@ describe('infinityFetch', () => {
           maxRetries: 2,
         },
       }),
-    ).rejects.toThrow(error);
+    ).rejects.toThrow(InfinityFetchError);
 
     expect(fetcher).toHaveBeenCalledTimes(3);
     expect(onPage).not.toHaveBeenCalled();
   });
 
   it('does not retry when retryWhen returns false', async () => {
-    const error = new Error('not retryable');
-    const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => Promise.reject(error));
+    const cause = new Error('not retryable');
+    const fetcher = jest.fn((_: CursorParams): Promise<CursorResponse> => Promise.reject(cause));
     const retryWhen = jest.fn(() => false);
 
-    await expect(
-      infinityFetch({
+    let err: unknown;
+
+    try {
+      await infinityFetch({
         fetcher,
         initialParams: { cursor: 0 },
         isLastPage: (r) => r.done,
@@ -266,11 +265,15 @@ describe('infinityFetch', () => {
           maxRetries: 3,
           retryWhen,
         },
-      }),
-    ).rejects.toThrow(error);
+      });
+    } catch (e) {
+      err = e;
+    }
 
+    expect(err).toBeInstanceOf(InfinityFetchError);
+    expect((err as InfinityFetchError<CursorParams, number>).cause).toBe(cause);
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(retryWhen).toHaveBeenCalledWith(error, 1);
+    expect(retryWhen).toHaveBeenCalledWith(cause, 1);
   });
 
   it('waits retry delay before retrying a failed page fetch', async () => {
@@ -284,7 +287,6 @@ describe('infinityFetch', () => {
       return Promise.resolve({ items: [1], done: true, next: 0 });
     });
     const retryDelay = jest.fn(() => 500);
-
     const promise = infinityFetch({
       fetcher,
       initialParams: { cursor: 0 },
@@ -319,6 +321,7 @@ describe('pagedFetch', () => {
 
   function makePagedFetcher<T>(pages: PagedResponse<T>[]) {
     let call = 0;
+
     return jest.fn((_params: PagedParams): Promise<PagedResponse<T>> => {
       return Promise.resolve(pages[call++]);
     });
@@ -329,7 +332,6 @@ describe('pagedFetch', () => {
       makePagedResponse(['a', 'b'], false, 100),
       makePagedResponse(['c'], true),
     ]);
-
     const { items, pages } = await pagedFetch({ fetcher });
 
     expect(fetcher).toHaveBeenCalledTimes(2);
@@ -352,7 +354,6 @@ describe('pagedFetch', () => {
     const fetcher = jest.fn(
       (_: PagedParams): Promise<PagedResponse<number>> => Promise.resolve(page),
     );
-
     const { items, pages } = await pagedFetch({ fetcher, maxPages: 2 });
 
     expect(fetcher).toHaveBeenCalledTimes(2);
@@ -374,6 +375,7 @@ describe('pagedFetch', () => {
     await pagedFetch({
       fetcher: (params) => {
         order.push('fetch');
+
         return fetcher(params);
       },
       onStart: () => order.push('start'),
@@ -401,7 +403,6 @@ describe('pagedFetch', () => {
 
       return Promise.resolve(page);
     });
-
     const { items, pages } = await pagedFetch({
       fetcher,
       retry: {
@@ -412,5 +413,252 @@ describe('pagedFetch', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(items).toEqual(['a']);
     expect(pages).toBe(1);
+  });
+});
+
+// --- AbortSignal ---
+
+describe('AbortSignal', () => {
+  const baseConfig = {
+    initialParams: { cursor: 0 },
+    isLastPage: (r: CursorResponse) => r.done,
+    getNextParams: (r: CursorResponse) => ({ cursor: r.next }),
+    getItems: (r: CursorResponse) => r.items,
+  };
+
+  it('returns empty partial result when signal is already aborted before first fetch', async () => {
+    const controller = new AbortController();
+
+    controller.abort();
+    const fetcher = jest.fn(
+      (_: { cursor: number }): Promise<CursorResponse> =>
+        Promise.resolve({ items: [1], done: true, next: 0 }),
+    );
+    const result = await infinityFetch({ ...baseConfig, fetcher, signal: controller.signal });
+
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(result).toEqual({ items: [], pages: 0, aborted: true });
+  });
+
+  it('returns partial result with items collected before abort', async () => {
+    const controller = new AbortController();
+
+    let call = 0;
+
+    const fetcher = jest.fn((_: { cursor: number }): Promise<CursorResponse> => {
+      if (call++ === 1) {
+        controller.abort();
+      }
+
+      return Promise.resolve({ items: [call], done: false, next: call });
+    });
+    const result = await infinityFetch({ ...baseConfig, fetcher, signal: controller.signal });
+
+    expect(result.aborted).toBe(true);
+    expect(result.items.length).toBeGreaterThan(0);
+  });
+
+  it('calls onEnd with aborted: true when signal fires', async () => {
+    const controller = new AbortController();
+
+    controller.abort();
+    const onEnd = jest.fn();
+
+    await infinityFetch({
+      ...baseConfig,
+      fetcher: jest.fn((_: { cursor: number }) =>
+        Promise.resolve({ items: [], done: true, next: 0 }),
+      ),
+      signal: controller.signal,
+      onEnd,
+    });
+
+    expect(onEnd).toHaveBeenCalledWith({ items: [], pages: 0, aborted: true });
+  });
+
+  it('does not set aborted when signal is not triggered', async () => {
+    const controller = new AbortController();
+    const fetcher = jest.fn(
+      (_: { cursor: number }): Promise<CursorResponse> =>
+        Promise.resolve({ items: [1], done: true, next: 0 }),
+    );
+    const result = await infinityFetch({ ...baseConfig, fetcher, signal: controller.signal });
+
+    expect(result.aborted).toBeUndefined();
+    expect(result.items).toEqual([1]);
+  });
+
+  it('returns partial result when fetcher throws due to abort', async () => {
+    const controller = new AbortController();
+    const fetcher = jest.fn((_: { cursor: number }): Promise<CursorResponse> => {
+      controller.abort();
+
+      return Promise.reject(new DOMException('Aborted', 'AbortError'));
+    });
+    const result = await infinityFetch({ ...baseConfig, fetcher, signal: controller.signal });
+
+    expect(result.aborted).toBe(true);
+    expect(result.items).toEqual([]);
+  });
+});
+
+// --- InfinityFetchError ---
+
+describe('InfinityFetchError', () => {
+  const baseConfig = {
+    initialParams: { cursor: 0 },
+    isLastPage: (r: CursorResponse) => r.done,
+    getNextParams: (r: CursorResponse) => ({ cursor: r.next }),
+    getItems: (r: CursorResponse) => r.items,
+  };
+
+  it('wraps fetcher errors with page context after retries are exhausted', async () => {
+    const cause = new Error('network error');
+    const fetcher = jest.fn(
+      (_: { cursor: number }): Promise<CursorResponse> => Promise.reject(cause),
+    );
+
+    let err: unknown;
+
+    try {
+      await infinityFetch({ ...baseConfig, fetcher });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).toBeInstanceOf(InfinityFetchError);
+    expect((err as InfinityFetchError<CursorParams, number>).pageIndex).toBe(0);
+    expect((err as InfinityFetchError<CursorParams, number>).params).toEqual({ cursor: 0 });
+    expect((err as InfinityFetchError<CursorParams, number>).itemsSoFar).toEqual([]);
+    expect((err as InfinityFetchError<CursorParams, number>).cause).toBe(cause);
+    expect((err as InfinityFetchError<CursorParams, number>).message).toMatch(/page 0/);
+  });
+
+  it('carries items collected on previous pages in itemsSoFar', async () => {
+    const cause = new Error('fail on page 1');
+
+    let call = 0;
+
+    const fetcher = jest.fn((_: { cursor: number }): Promise<CursorResponse> => {
+      if (call++ === 1) {
+        return Promise.reject(cause);
+      }
+
+      return Promise.resolve({ items: [10, 20], done: false, next: 1 });
+    });
+
+    let err: unknown;
+
+    try {
+      await infinityFetch({ ...baseConfig, fetcher });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).toBeInstanceOf(InfinityFetchError);
+    expect((err as InfinityFetchError<CursorParams, number>).pageIndex).toBe(1);
+    expect((err as InfinityFetchError<CursorParams, number>).itemsSoFar).toEqual([10, 20]);
+    expect((err as InfinityFetchError<CursorParams, number>).cause).toBe(cause);
+  });
+
+  it('wraps errors thrown by getItems', async () => {
+    const cause = new Error('bad items');
+    const fetcher = jest.fn(
+      (_: { cursor: number }): Promise<CursorResponse> =>
+        Promise.resolve({ items: [], done: false, next: 1 }),
+    );
+
+    let err: unknown;
+
+    try {
+      await infinityFetch({
+        ...baseConfig,
+        fetcher,
+        getItems: () => {
+          throw cause;
+        },
+      });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).toBeInstanceOf(InfinityFetchError);
+    expect((err as InfinityFetchError<CursorParams, number>).cause).toBe(cause);
+  });
+
+  it('wraps errors thrown by getNextParams', async () => {
+    const cause = new Error('bad params');
+    const fetcher = jest.fn(
+      (_: { cursor: number }): Promise<CursorResponse> =>
+        Promise.resolve({ items: [1], done: false, next: 1 }),
+    );
+
+    let err: unknown;
+
+    try {
+      await infinityFetch({
+        ...baseConfig,
+        fetcher,
+        getNextParams: () => {
+          throw cause;
+        },
+      });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).toBeInstanceOf(InfinityFetchError);
+    expect((err as InfinityFetchError<CursorParams, number>).cause).toBe(cause);
+    expect((err as InfinityFetchError<CursorParams, number>).itemsSoFar).toEqual([1]);
+  });
+
+  it('wraps errors thrown by isLastPage', async () => {
+    const cause = new Error('bad response');
+    const fetcher = jest.fn(
+      (_: { cursor: number }): Promise<CursorResponse> =>
+        Promise.resolve({ items: [], done: false, next: 1 }),
+    );
+
+    let err: unknown;
+
+    try {
+      await infinityFetch({
+        ...baseConfig,
+        fetcher,
+        isLastPage: () => {
+          throw cause;
+        },
+      });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).toBeInstanceOf(InfinityFetchError);
+    expect((err as InfinityFetchError<CursorParams, number>).cause).toBe(cause);
+  });
+
+  it('wraps errors thrown by onPage', async () => {
+    const cause = new Error('render failed');
+    const fetcher = jest.fn(
+      (_: { cursor: number }): Promise<CursorResponse> =>
+        Promise.resolve({ items: [1], done: true, next: 0 }),
+    );
+
+    let err: unknown;
+
+    try {
+      await infinityFetch({
+        ...baseConfig,
+        fetcher,
+        onPage: () => {
+          throw cause;
+        },
+      });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).toBeInstanceOf(InfinityFetchError);
+    expect((err as InfinityFetchError<CursorParams, number>).cause).toBe(cause);
   });
 });

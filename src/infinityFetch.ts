@@ -3,7 +3,27 @@ export type InfinityFetchResult<TItem> = {
   items: TItem[];
   /** Number of pages fetched */
   pages: number;
+  /** Present and true when the fetch was stopped early via AbortSignal */
+  aborted?: true;
 };
+
+export class InfinityFetchError<TParams, TItem> extends Error {
+  readonly pageIndex: number;
+  readonly params: TParams;
+  readonly itemsSoFar: TItem[];
+  readonly cause: unknown;
+
+  constructor(pageIndex: number, params: TParams, itemsSoFar: TItem[], cause: unknown) {
+    super(
+      `infinity-fetch failed on page ${pageIndex}: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+    this.name = 'InfinityFetchError';
+    this.cause = cause;
+    this.pageIndex = pageIndex;
+    this.params = params;
+    this.itemsSoFar = itemsSoFar;
+  }
+}
 
 export type InfinityFetchRetryConfig = {
   /** Optional: maximum retry attempts per page */
@@ -37,6 +57,8 @@ export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = {
   delay?: number;
   /** Optional: retry failed page fetches */
   retry?: InfinityFetchRetryConfig;
+  /** Optional: signal to abort pagination early and return partial results */
+  signal?: AbortSignal;
 };
 
 function wait(milliseconds: number): Promise<void> {
@@ -49,6 +71,7 @@ async function fetchWithRetry<TResponse, TParams extends object>(
   retry: InfinityFetchRetryConfig | undefined,
 ): Promise<TResponse> {
   const maxRetries = retry?.maxRetries ?? 0;
+
   let attempt = 0;
 
   while (true) {
@@ -92,34 +115,63 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
     maxPages = Infinity,
     delay,
     retry,
+    signal,
   } = config;
 
   onStart?.();
 
   const items: TItem[] = [];
+
   let params = initialParams;
   let pageIndex = 0;
 
   while (pageIndex < maxPages) {
-    const response = await fetchWithRetry(fetcher, params, retry);
-    const pageItems = getItems(response);
-    items.push(...pageItems);
-    onPage?.(pageItems, response, pageIndex);
+    if (signal?.aborted) {
+      const result: InfinityFetchResult<TItem> = { items, pages: pageIndex, aborted: true };
 
-    pageIndex++;
+      onEnd?.(result);
 
-    if (isLastPage(response)) {
-      break;
+      return result;
     }
 
-    params = getNextParams(response, params);
+    try {
+      const response = await fetchWithRetry(fetcher, params, retry);
+      const pageItems = getItems(response);
 
-    if (delay) {
-      await wait(delay);
+      items.push(...pageItems);
+      onPage?.(pageItems, response, pageIndex);
+
+      pageIndex++;
+
+      if (isLastPage(response)) {
+        break;
+      }
+
+      params = getNextParams(response, params);
+
+      if (delay) {
+        await wait(delay);
+      }
+    } catch (error) {
+      if (signal?.aborted) {
+        const result: InfinityFetchResult<TItem> = { items, pages: pageIndex, aborted: true };
+
+        onEnd?.(result);
+
+        return result;
+      }
+
+      if (error instanceof InfinityFetchError) {
+        throw error;
+      }
+
+      throw new InfinityFetchError(pageIndex, params, [...items], error);
     }
   }
 
   const result = { items, pages: pageIndex };
+
   onEnd?.(result);
+
   return result;
 }

@@ -35,6 +35,8 @@ export type PagedFetchConfig<TItem> = {
   delay?: number;
   /** Optional: retry failed page fetches */
   retry?: InfinityFetchRetryConfig;
+  /** Optional: signal to abort pagination early and return partial results */
+  signal?: AbortSignal;
 };
 
 /**
@@ -71,5 +73,6 @@ export function pagedFetch<TItem>(
     maxPages: config.maxPages,
     delay: config.delay,
     retry: config.retry,
+    signal: config.signal,
   });
 }
