@@ -1,3 +1,17 @@
+# [1.4.0](https://github.com/ElJijuna/infinity-fetch/compare/v1.3.1...v1.4.0) (2026-06-23)
+
+
+### Bug Fixes
+
+* update terminology from Bitbucket-style to offset-based paginated APIs in documentation and code comments ([fd47e32](https://github.com/ElJijuna/infinity-fetch/commit/fd47e32fc9f65480cb70a130a4e80bf27e40d322))
+
+
+### Features
+
+* add cursorFetch helper for cursor-based pagination and enhance type definitions ([b9f3759](https://github.com/ElJijuna/infinity-fetch/commit/b9f3759cc6c7ebd2c01a295d9951fe0e1709a6fb))
+* add support for aborting pagination with AbortSignal and enhance InfinityFetchError handling ([c3ff7de](https://github.com/ElJijuna/infinity-fetch/commit/c3ff7dec9c67f3366d51c65b7e676ff4200075e5))
+* implement InfinityFetchError class and refactor pagination types for improved error handling and structure ([c8998d1](https://github.com/ElJijuna/infinity-fetch/commit/c8998d1da938d4d8757477922d36df7ade73dd14))
+
 ## [1.3.1](https://github.com/ElJijuna/infinity-fetch/compare/v1.3.0...v1.3.1) (2026-06-07)
 
 
