@@ -1,6 +1,7 @@
 import type { CursorParams } from './CursorParams.js';
 import type { FetchContext } from './FetchContext.js';
 import type { PaginationOptions } from './PaginationOptions.js';
+import type { StreamConfig } from './StreamConfig.js';
 
 export type CursorFetchConfig<TResponse, TItem> = PaginationOptions<TResponse, TItem> & {
   fetcher: (params: CursorParams, context: FetchContext) => Promise<TResponse>;
@@ -9,3 +10,7 @@ export type CursorFetchConfig<TResponse, TItem> = PaginationOptions<TResponse, T
   /** Extracts items from a single page response */
   getItems: (response: TResponse) => TItem[];
 };
+
+export type CursorStreamConfig<TResponse, TItem> = StreamConfig<
+  CursorFetchConfig<TResponse, TItem>
+>;

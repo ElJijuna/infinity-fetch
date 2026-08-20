@@ -1,5 +1,6 @@
 import type { FetchContext } from './FetchContext.js';
 import type { PaginationOptions } from './PaginationOptions.js';
+import type { StreamConfig } from './StreamConfig.js';
 
 export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = PaginationOptions<
   TResponse,
@@ -16,3 +17,7 @@ export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = Pagi
   /** Extracts items from a single page response */
   getItems: (response: TResponse) => TItem[];
 };
+
+export type InfinityFetchStreamConfig<TResponse, TParams extends object, TItem> = StreamConfig<
+  InfinityFetchConfig<TResponse, TParams, TItem>
+>;

@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { pagedFetch } from '../pagedFetch.js';
+import { pagedFetch, pagedStream } from '../pagedFetch.js';
 import type { PagedParams, PagedResponse } from '../types/index.js';
 import { ctx } from './helpers.js';
 
@@ -106,5 +106,27 @@ describe('pagedFetch', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(items).toEqual(['a']);
     expect(pages).toBe(1);
+  });
+});
+
+describe('pagedStream', () => {
+  it('streams offset-based pages', async () => {
+    const pages: PagedResponse<string>[] = [
+      { values: ['a'], isLastPage: false, nextPageStart: 1, size: 1, limit: 1, start: 0 },
+      { values: ['b'], isLastPage: true, size: 1, limit: 1, start: 1 },
+    ];
+
+    let call = 0;
+
+    const collected: string[] = [];
+
+    for await (const page of pagedStream({
+      fetcher: (_params: PagedParams) => Promise.resolve(pages[call++]),
+      limit: 1,
+    })) {
+      collected.push(...page.items);
+    }
+
+    expect(collected).toEqual(['a', 'b']);
   });
 });

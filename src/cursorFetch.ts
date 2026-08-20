@@ -1,8 +1,11 @@
 import { infinityFetch } from './infinityFetch.js';
+import { infinityFetchStream } from './infinityFetchStream.js';
 import type {
   CursorFetchConfig,
   CursorParams,
+  CursorStreamConfig,
   InfinityFetchConfig,
+  InfinityFetchPage,
   InfinityFetchResult,
 } from './types/index.js';
 
@@ -38,4 +41,22 @@ export function cursorFetch<TResponse, TItem>(
   config: CursorFetchConfig<TResponse, TItem>,
 ): Promise<InfinityFetchResult<TItem>> {
   return infinityFetch({ ...toCoreConfig(config), onEnd: config.onEnd });
+}
+
+/**
+ * Streaming counterpart of {@link cursorFetch}: yields one page at a time.
+ *
+ * @example
+ * for await (const { items } of cursorStream({
+ *   fetcher: ({ cursor }) => api.items({ cursor }),
+ *   getCursor: (r) => r.nextCursor ?? null,
+ *   getItems: (r) => r.data,
+ * })) {
+ *   await handle(items);
+ * }
+ */
+export function cursorStream<TResponse, TItem>(
+  config: CursorStreamConfig<TResponse, TItem>,
+): AsyncGenerator<InfinityFetchPage<TResponse, TItem>, void, void> {
+  return infinityFetchStream({ ...toCoreConfig(config), onEnd: config.onEnd });
 }
