@@ -1,3 +1,20 @@
+# [1.5.0](https://github.com/ElJijuna/infinity-fetch/compare/v1.4.0...v1.5.0) (2026-08-20)
+
+
+### Bug Fixes
+
+* make cancellation reach the fetcher and the pending delays ([4f74758](https://github.com/ElJijuna/infinity-fetch/commit/4f74758466aa1d196f82d0d9a5295b05534bd8e8))
+
+
+### Features
+
+* add exponentialBackoff retry helper ([8a57adb](https://github.com/ElJijuna/infinity-fetch/commit/8a57adbb0cbba207341687421647b8c9493bc58d))
+* add linkFetch for RFC 5988 Link header pagination ([7c8d087](https://github.com/ElJijuna/infinity-fetch/commit/7c8d087335b7f5a7e9794f2f41bb55a624185a4b))
+* add maxItems, stopWhen and per-item transforms ([e018e7a](https://github.com/ElJijuna/infinity-fetch/commit/e018e7a52951de14318624726b95bc42ece80158))
+* add pageFetch for page-number APIs ([bd286f4](https://github.com/ElJijuna/infinity-fetch/commit/bd286f479447c959d2d4b954a012d598c299dd27))
+* enhance README with detailed pagination options and examples ([f77fb64](https://github.com/ElJijuna/infinity-fetch/commit/f77fb64c79140366311d27c689a087853166add7))
+* stream pages instead of buffering them all ([c3fc7e6](https://github.com/ElJijuna/infinity-fetch/commit/c3fc7e63beba3a4fa47984f705b5f15f968ee52b))
+
 # [1.4.0](https://github.com/ElJijuna/infinity-fetch/compare/v1.3.1...v1.4.0) (2026-06-23)
 
 
