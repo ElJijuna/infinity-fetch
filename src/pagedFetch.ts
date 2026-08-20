@@ -1,10 +1,34 @@
 import { infinityFetch } from './infinityFetch.js';
 import type {
+  InfinityFetchConfig,
   InfinityFetchResult,
   PagedFetchConfig,
   PagedParams,
   PagedResponse,
 } from './types/index.js';
+
+function toCoreConfig<TItem>(
+  config: Omit<PagedFetchConfig<TItem>, 'onEnd'>,
+): Omit<InfinityFetchConfig<PagedResponse<TItem>, PagedParams, TItem>, 'onEnd'> {
+  const { limit = 100, ...options } = config;
+
+  return {
+    ...options,
+    initialParams: { start: 0, limit },
+    isLastPage: (response) => response.isLastPage,
+    getNextParams: (response, currentParams) => {
+      if (response.nextPageStart === undefined) {
+        throw new Error('Missing nextPageStart in non-final paged response');
+      }
+
+      return {
+        start: response.nextPageStart,
+        limit: currentParams.limit,
+      };
+    },
+    getItems: (response) => response.values,
+  };
+}
 
 /**
  * Convenience wrapper for offset-based paginated APIs.
@@ -19,27 +43,5 @@ import type {
 export function pagedFetch<TItem>(
   config: PagedFetchConfig<TItem>,
 ): Promise<InfinityFetchResult<TItem>> {
-  return infinityFetch<PagedResponse<TItem>, PagedParams, TItem>({
-    fetcher: config.fetcher,
-    initialParams: { start: 0, limit: config.limit ?? 100 },
-    isLastPage: (response) => response.isLastPage,
-    getNextParams: (response, currentParams) => {
-      if (response.nextPageStart === undefined) {
-        throw new Error('Missing nextPageStart in non-final paged response');
-      }
-
-      return {
-        start: response.nextPageStart,
-        limit: currentParams.limit,
-      };
-    },
-    getItems: (response) => response.values,
-    onStart: config.onStart,
-    onEnd: config.onEnd,
-    onPage: config.onPage,
-    maxPages: config.maxPages,
-    delay: config.delay,
-    retry: config.retry,
-    signal: config.signal,
-  });
+  return infinityFetch({ ...toCoreConfig(config), onEnd: config.onEnd });
 }

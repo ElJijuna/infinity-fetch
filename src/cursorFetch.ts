@@ -1,5 +1,27 @@
 import { infinityFetch } from './infinityFetch.js';
-import type { CursorFetchConfig, CursorParams, InfinityFetchResult } from './types/index.js';
+import type {
+  CursorFetchConfig,
+  CursorParams,
+  InfinityFetchConfig,
+  InfinityFetchResult,
+} from './types/index.js';
+
+function toCoreConfig<TResponse, TItem>(
+  config: Omit<CursorFetchConfig<TResponse, TItem>, 'onEnd'>,
+): Omit<InfinityFetchConfig<TResponse, CursorParams, TItem>, 'onEnd'> {
+  const { getCursor, ...options } = config;
+
+  return {
+    ...options,
+    initialParams: { cursor: null },
+    isLastPage: (response) => {
+      const cursor = getCursor(response);
+
+      return cursor === null || cursor === undefined;
+    },
+    getNextParams: (response) => ({ cursor: getCursor(response) as string }),
+  };
+}
 
 /**
  * Convenience wrapper for cursor-based paginated APIs.
@@ -15,22 +37,5 @@ import type { CursorFetchConfig, CursorParams, InfinityFetchResult } from './typ
 export function cursorFetch<TResponse, TItem>(
   config: CursorFetchConfig<TResponse, TItem>,
 ): Promise<InfinityFetchResult<TItem>> {
-  return infinityFetch<TResponse, CursorParams, TItem>({
-    fetcher: config.fetcher,
-    initialParams: { cursor: null },
-    isLastPage: (response) => {
-      const cursor = config.getCursor(response);
-
-      return cursor === null || cursor === undefined;
-    },
-    getNextParams: (response) => ({ cursor: config.getCursor(response) as string }),
-    getItems: config.getItems,
-    onStart: config.onStart,
-    onEnd: config.onEnd,
-    onPage: config.onPage,
-    maxPages: config.maxPages,
-    delay: config.delay,
-    retry: config.retry,
-    signal: config.signal,
-  });
+  return infinityFetch({ ...toCoreConfig(config), onEnd: config.onEnd });
 }

@@ -10,3 +10,16 @@ export function makeCursorFetcher(pages: CursorResponse[]) {
     return Promise.resolve(pages[call++]);
   });
 }
+
+/** Config shared by the suites that paginate over `CursorResponse` pages */
+export const baseCursorConfig = {
+  initialParams: { cursor: 0 },
+  isLastPage: (r: CursorResponse) => r.done,
+  getNextParams: (r: CursorResponse) => ({ cursor: r.next }),
+  getItems: (r: CursorResponse) => r.items,
+};
+
+/** The context object the engine passes as the fetcher's second argument */
+export function ctx(pageIndex: number, attempt = 0, signal?: AbortSignal) {
+  return { pageIndex, attempt, signal };
+}

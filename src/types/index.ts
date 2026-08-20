@@ -1,8 +1,11 @@
 export type { CursorFetchConfig } from './CursorFetchConfig.js';
 export type { CursorParams } from './CursorParams.js';
+export type { FetchContext } from './FetchContext.js';
 export type { InfinityFetchConfig } from './InfinityFetchConfig.js';
+export type { InfinityFetchPage } from './InfinityFetchPage.js';
 export type { InfinityFetchResult } from './InfinityFetchResult.js';
 export type { InfinityFetchRetryConfig } from './InfinityFetchRetryConfig.js';
 export type { PagedFetchConfig } from './PagedFetchConfig.js';
 export type { PagedParams } from './PagedParams.js';
 export type { PagedResponse } from './PagedResponse.js';
+export type { PaginationOptions } from './PaginationOptions.js';

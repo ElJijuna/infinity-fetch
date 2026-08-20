@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { InfinityFetchError } from '../InfinityFetchError.js';
 import { infinityFetch } from '../infinityFetch.js';
-import { type CursorResponse, makeCursorFetcher, type TestParams } from './helpers.js';
+import { type CursorResponse, ctx, makeCursorFetcher, type TestParams } from './helpers.js';
 
 describe('infinityFetch', () => {
   it('fetches a single page when isLastPage is true on first response', async () => {
@@ -15,7 +15,7 @@ describe('infinityFetch', () => {
     });
 
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(fetcher).toHaveBeenCalledWith({ cursor: 0 });
+    expect(fetcher).toHaveBeenCalledWith({ cursor: 0 }, ctx(0));
     expect(items).toEqual([1, 2, 3]);
     expect(pages).toBe(1);
   });
@@ -53,8 +53,8 @@ describe('infinityFetch', () => {
       getItems: (r) => r.items,
     });
 
-    expect(fetcher).toHaveBeenNthCalledWith(1, { cursor: 0 });
-    expect(fetcher).toHaveBeenNthCalledWith(2, { cursor: 100 });
+    expect(fetcher).toHaveBeenNthCalledWith(1, { cursor: 0 }, ctx(0));
+    expect(fetcher).toHaveBeenNthCalledWith(2, { cursor: 100 }, ctx(1));
   });
 
   it('stops at maxPages even if isLastPage never returns true', async () => {

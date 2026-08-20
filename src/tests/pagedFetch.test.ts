@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { pagedFetch } from '../pagedFetch.js';
 import type { PagedParams, PagedResponse } from '../types/index.js';
+import { ctx } from './helpers.js';
 
 describe('pagedFetch', () => {
   function makePagedResponse<T>(
@@ -27,8 +28,8 @@ describe('pagedFetch', () => {
     const { items, pages } = await pagedFetch({ fetcher });
 
     expect(fetcher).toHaveBeenCalledTimes(2);
-    expect(fetcher).toHaveBeenNthCalledWith(1, { start: 0, limit: 100 });
-    expect(fetcher).toHaveBeenNthCalledWith(2, { start: 100, limit: 100 });
+    expect(fetcher).toHaveBeenNthCalledWith(1, { start: 0, limit: 100 }, ctx(0));
+    expect(fetcher).toHaveBeenNthCalledWith(2, { start: 100, limit: 100 }, ctx(1));
     expect(items).toEqual(['a', 'b', 'c']);
     expect(pages).toBe(2);
   });
@@ -38,7 +39,7 @@ describe('pagedFetch', () => {
 
     await pagedFetch({ fetcher, limit: 25 });
 
-    expect(fetcher).toHaveBeenCalledWith({ start: 0, limit: 25 });
+    expect(fetcher).toHaveBeenCalledWith({ start: 0, limit: 25 }, ctx(0));
   });
 
   it('respects maxPages limit', async () => {

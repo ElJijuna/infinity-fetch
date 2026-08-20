@@ -1,9 +1,12 @@
-import type { InfinityFetchResult } from './InfinityFetchResult.js';
-import type { InfinityFetchRetryConfig } from './InfinityFetchRetryConfig.js';
+import type { FetchContext } from './FetchContext.js';
+import type { PaginationOptions } from './PaginationOptions.js';
 
-export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = {
+export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = PaginationOptions<
+  TResponse,
+  TItem
+> & {
   /** The function that fetches a single page */
-  fetcher: (params: TParams) => Promise<TResponse>;
+  fetcher: (params: TParams, context: FetchContext) => Promise<TResponse>;
   /** Initial parameters for the first request */
   initialParams: TParams;
   /** Returns true when no more pages should be fetched */
@@ -12,18 +15,4 @@ export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = {
   getNextParams: (response: TResponse, currentParams: TParams) => TParams;
   /** Extracts items from a single page response */
   getItems: (response: TResponse) => TItem[];
-  /** Optional: called once before the first fetch starts */
-  onStart?: () => void;
-  /** Optional: called once after all pages have been fetched */
-  onEnd?: (result: InfinityFetchResult<TItem>) => void;
-  /** Optional: called after each page is fetched */
-  onPage?: (items: TItem[], response: TResponse, pageIndex: number) => void;
-  /** Optional: maximum number of pages to fetch (safety limit) */
-  maxPages?: number;
-  /** Optional: milliseconds to wait between each page fetch */
-  delay?: number;
-  /** Optional: retry failed page fetches */
-  retry?: InfinityFetchRetryConfig;
-  /** Optional: signal to abort pagination early and return partial results */
-  signal?: AbortSignal;
 };

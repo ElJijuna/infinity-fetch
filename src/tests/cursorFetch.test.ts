@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { cursorFetch } from '../cursorFetch.js';
 import type { CursorParams } from '../types/index.js';
+import { ctx } from './helpers.js';
 
 describe('cursorFetch', () => {
   type ApiResponse = { data: string[]; nextCursor: string | null };
@@ -20,7 +21,7 @@ describe('cursorFetch', () => {
     });
 
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(fetcher).toHaveBeenCalledWith({ cursor: null });
+    expect(fetcher).toHaveBeenCalledWith({ cursor: null }, ctx(0));
     expect(items).toEqual(['a', 'b']);
     expect(pages).toBe(1);
   });
@@ -61,9 +62,9 @@ describe('cursorFetch', () => {
 
     await cursorFetch({ fetcher, getCursor: (r) => r.nextCursor, getItems: (r) => r.data });
 
-    expect(fetcher).toHaveBeenNthCalledWith(1, { cursor: null });
-    expect(fetcher).toHaveBeenNthCalledWith(2, { cursor: 'tok1' });
-    expect(fetcher).toHaveBeenNthCalledWith(3, { cursor: 'tok2' });
+    expect(fetcher).toHaveBeenNthCalledWith(1, { cursor: null }, ctx(0));
+    expect(fetcher).toHaveBeenNthCalledWith(2, { cursor: 'tok1' }, ctx(1));
+    expect(fetcher).toHaveBeenNthCalledWith(3, { cursor: 'tok2' }, ctx(2));
   });
 
   it('stops at maxPages even when cursor is not null', async () => {
