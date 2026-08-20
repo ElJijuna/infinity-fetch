@@ -29,4 +29,6 @@ export type {
   PaginationOptions,
   StreamConfig,
 } from './types/index.js';
+export type { ExponentialBackoffOptions } from './utils/exponentialBackoff.js';
+export { exponentialBackoff } from './utils/exponentialBackoff.js';
 export { parseLinkHeader } from './utils/parseLinkHeader.js';
