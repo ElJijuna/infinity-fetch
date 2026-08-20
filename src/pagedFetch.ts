@@ -10,9 +10,9 @@ import type {
   PagedStreamConfig,
 } from './types/index.js';
 
-function toCoreConfig<TItem>(
-  config: Omit<PagedFetchConfig<TItem>, 'onEnd'>,
-): Omit<InfinityFetchConfig<PagedResponse<TItem>, PagedParams, TItem>, 'onEnd'> {
+function toCoreConfig<TItem, TOut>(
+  config: Omit<PagedFetchConfig<TItem, TOut>, 'onEnd'>,
+): Omit<InfinityFetchConfig<PagedResponse<TItem>, PagedParams, TItem, TOut>, 'onEnd'> {
   const { limit = 100, ...options } = config;
 
   return {
@@ -43,9 +43,9 @@ function toCoreConfig<TItem>(
  *   limit: 100,
  * });
  */
-export function pagedFetch<TItem>(
-  config: PagedFetchConfig<TItem>,
-): Promise<InfinityFetchResult<TItem>> {
+export function pagedFetch<TItem, TOut = TItem>(
+  config: PagedFetchConfig<TItem, TOut>,
+): Promise<InfinityFetchResult<TOut>> {
   return infinityFetch({ ...toCoreConfig(config), onEnd: config.onEnd });
 }
 
@@ -57,8 +57,8 @@ export function pagedFetch<TItem>(
  *   await handle(items);
  * }
  */
-export function pagedStream<TItem>(
-  config: PagedStreamConfig<TItem>,
-): AsyncGenerator<InfinityFetchPage<PagedResponse<TItem>, TItem>, void, void> {
+export function pagedStream<TItem, TOut = TItem>(
+  config: PagedStreamConfig<TItem, TOut>,
+): AsyncGenerator<InfinityFetchPage<PagedResponse<TItem>, TOut>, void, void> {
   return infinityFetchStream({ ...toCoreConfig(config), onEnd: config.onEnd });
 }

@@ -3,7 +3,11 @@ import type { LinkParams } from './LinkParams.js';
 import type { PaginationOptions } from './PaginationOptions.js';
 import type { StreamConfig } from './StreamConfig.js';
 
-export type LinkFetchConfig<TResponse, TItem> = PaginationOptions<TResponse, TItem> & {
+export type LinkFetchConfig<TResponse, TItem, TOut = TItem> = PaginationOptions<
+  TResponse,
+  TItem,
+  TOut
+> & {
   /** URL of the first page */
   url: string;
   fetcher: (params: LinkParams, context: FetchContext) => Promise<TResponse>;
@@ -18,4 +22,6 @@ export type LinkFetchConfig<TResponse, TItem> = PaginationOptions<TResponse, TIt
   getLinkHeader?: (response: TResponse) => string | null | undefined;
 };
 
-export type LinkStreamConfig<TResponse, TItem> = StreamConfig<LinkFetchConfig<TResponse, TItem>>;
+export type LinkStreamConfig<TResponse, TItem, TOut = TItem> = StreamConfig<
+  LinkFetchConfig<TResponse, TItem, TOut>
+>;

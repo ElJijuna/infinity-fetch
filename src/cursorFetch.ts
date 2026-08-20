@@ -9,9 +9,9 @@ import type {
   InfinityFetchResult,
 } from './types/index.js';
 
-function toCoreConfig<TResponse, TItem>(
-  config: Omit<CursorFetchConfig<TResponse, TItem>, 'onEnd'>,
-): Omit<InfinityFetchConfig<TResponse, CursorParams, TItem>, 'onEnd'> {
+function toCoreConfig<TResponse, TItem, TOut>(
+  config: Omit<CursorFetchConfig<TResponse, TItem, TOut>, 'onEnd'>,
+): Omit<InfinityFetchConfig<TResponse, CursorParams, TItem, TOut>, 'onEnd'> {
   const { getCursor, ...options } = config;
 
   return {
@@ -37,9 +37,9 @@ function toCoreConfig<TResponse, TItem>(
  *   getItems: (r) => r.data,
  * });
  */
-export function cursorFetch<TResponse, TItem>(
-  config: CursorFetchConfig<TResponse, TItem>,
-): Promise<InfinityFetchResult<TItem>> {
+export function cursorFetch<TResponse, TItem, TOut = TItem>(
+  config: CursorFetchConfig<TResponse, TItem, TOut>,
+): Promise<InfinityFetchResult<TOut>> {
   return infinityFetch({ ...toCoreConfig(config), onEnd: config.onEnd });
 }
 
@@ -55,8 +55,8 @@ export function cursorFetch<TResponse, TItem>(
  *   await handle(items);
  * }
  */
-export function cursorStream<TResponse, TItem>(
-  config: CursorStreamConfig<TResponse, TItem>,
-): AsyncGenerator<InfinityFetchPage<TResponse, TItem>, void, void> {
+export function cursorStream<TResponse, TItem, TOut = TItem>(
+  config: CursorStreamConfig<TResponse, TItem, TOut>,
+): AsyncGenerator<InfinityFetchPage<TResponse, TOut>, void, void> {
   return infinityFetchStream({ ...toCoreConfig(config), onEnd: config.onEnd });
 }

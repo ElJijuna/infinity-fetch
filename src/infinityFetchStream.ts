@@ -21,10 +21,10 @@ import type { InfinityFetchPage, InfinityFetchStreamConfig } from './types/index
  *   await db.insertMany(items);
  * }
  */
-export async function* infinityFetchStream<TResponse, TParams extends object, TItem>(
-  config: InfinityFetchStreamConfig<TResponse, TParams, TItem>,
-): AsyncGenerator<InfinityFetchPage<TResponse, TItem>, void, void> {
-  const iterator = paginate<TResponse, TParams, TItem>(config)[Symbol.asyncIterator]();
+export async function* infinityFetchStream<TResponse, TParams extends object, TItem, TOut = TItem>(
+  config: InfinityFetchStreamConfig<TResponse, TParams, TItem, TOut>,
+): AsyncGenerator<InfinityFetchPage<TResponse, TOut>, void, void> {
+  const iterator = paginate<TResponse, TParams, TItem, TOut>(config)[Symbol.asyncIterator]();
 
   let pages = 0;
   let items = 0;

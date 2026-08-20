@@ -3,7 +3,11 @@ import type { PageParams } from './PageParams.js';
 import type { PaginationOptions } from './PaginationOptions.js';
 import type { StreamConfig } from './StreamConfig.js';
 
-export type PageFetchConfig<TResponse, TItem> = PaginationOptions<TResponse, TItem> & {
+export type PageFetchConfig<TResponse, TItem, TOut = TItem> = PaginationOptions<
+  TResponse,
+  TItem,
+  TOut
+> & {
   fetcher: (params: PageParams, context: FetchContext) => Promise<TResponse>;
   /** Extracts items from a single page response. May be async */
   getItems: (response: TResponse) => TItem[] | Promise<TItem[]>;
@@ -20,4 +24,6 @@ export type PageFetchConfig<TResponse, TItem> = PaginationOptions<TResponse, TIt
   isLastPage?: (response: TResponse, items: TItem[], page: number) => boolean;
 };
 
-export type PageStreamConfig<TResponse, TItem> = StreamConfig<PageFetchConfig<TResponse, TItem>>;
+export type PageStreamConfig<TResponse, TItem, TOut = TItem> = StreamConfig<
+  PageFetchConfig<TResponse, TItem, TOut>
+>;

@@ -18,9 +18,9 @@ function readLinkHeader(response: unknown): string | null | undefined {
   return typeof headers?.get === 'function' ? headers.get('link') : undefined;
 }
 
-function toCoreConfig<TResponse, TItem>(
-  config: Omit<LinkFetchConfig<TResponse, TItem>, 'onEnd'>,
-): Omit<InfinityFetchConfig<TResponse, LinkParams, TItem>, 'onEnd'> {
+function toCoreConfig<TResponse, TItem, TOut>(
+  config: Omit<LinkFetchConfig<TResponse, TItem, TOut>, 'onEnd'>,
+): Omit<InfinityFetchConfig<TResponse, LinkParams, TItem, TOut>, 'onEnd'> {
   const { url, rel = 'next', getLinkHeader = readLinkHeader, ...options } = config;
   const nextUrl = (response: TResponse): string | undefined =>
     parseLinkHeader(getLinkHeader(response))[rel];
@@ -47,9 +47,9 @@ function toCoreConfig<TResponse, TItem>(
  *   getItems: (response) => response.json(),
  * });
  */
-export function linkFetch<TResponse, TItem>(
-  config: LinkFetchConfig<TResponse, TItem>,
-): Promise<InfinityFetchResult<TItem>> {
+export function linkFetch<TResponse, TItem, TOut = TItem>(
+  config: LinkFetchConfig<TResponse, TItem, TOut>,
+): Promise<InfinityFetchResult<TOut>> {
   return infinityFetch({ ...toCoreConfig(config), onEnd: config.onEnd });
 }
 
@@ -65,8 +65,8 @@ export function linkFetch<TResponse, TItem>(
  *   await handle(items);
  * }
  */
-export function linkStream<TResponse, TItem>(
-  config: LinkStreamConfig<TResponse, TItem>,
-): AsyncGenerator<InfinityFetchPage<TResponse, TItem>, void, void> {
+export function linkStream<TResponse, TItem, TOut = TItem>(
+  config: LinkStreamConfig<TResponse, TItem, TOut>,
+): AsyncGenerator<InfinityFetchPage<TResponse, TOut>, void, void> {
   return infinityFetchStream({ ...toCoreConfig(config), onEnd: config.onEnd });
 }

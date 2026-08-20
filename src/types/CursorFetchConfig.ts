@@ -3,7 +3,11 @@ import type { FetchContext } from './FetchContext.js';
 import type { PaginationOptions } from './PaginationOptions.js';
 import type { StreamConfig } from './StreamConfig.js';
 
-export type CursorFetchConfig<TResponse, TItem> = PaginationOptions<TResponse, TItem> & {
+export type CursorFetchConfig<TResponse, TItem, TOut = TItem> = PaginationOptions<
+  TResponse,
+  TItem,
+  TOut
+> & {
   fetcher: (params: CursorParams, context: FetchContext) => Promise<TResponse>;
   /** Returns the cursor for the next page, or null/undefined when there are no more pages */
   getCursor: (response: TResponse) => string | null | undefined;
@@ -11,6 +15,6 @@ export type CursorFetchConfig<TResponse, TItem> = PaginationOptions<TResponse, T
   getItems: (response: TResponse) => TItem[] | Promise<TItem[]>;
 };
 
-export type CursorStreamConfig<TResponse, TItem> = StreamConfig<
-  CursorFetchConfig<TResponse, TItem>
+export type CursorStreamConfig<TResponse, TItem, TOut = TItem> = StreamConfig<
+  CursorFetchConfig<TResponse, TItem, TOut>
 >;

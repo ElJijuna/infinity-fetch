@@ -2,10 +2,12 @@ import type { FetchContext } from './FetchContext.js';
 import type { PaginationOptions } from './PaginationOptions.js';
 import type { StreamConfig } from './StreamConfig.js';
 
-export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = PaginationOptions<
+export type InfinityFetchConfig<
   TResponse,
-  TItem
-> & {
+  TParams extends object,
+  TItem,
+  TOut = TItem,
+> = PaginationOptions<TResponse, TItem, TOut> & {
   /** The function that fetches a single page */
   fetcher: (params: TParams, context: FetchContext) => Promise<TResponse>;
   /** Initial parameters for the first request */
@@ -18,6 +20,9 @@ export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = Pagi
   getItems: (response: TResponse) => TItem[] | Promise<TItem[]>;
 };
 
-export type InfinityFetchStreamConfig<TResponse, TParams extends object, TItem> = StreamConfig<
-  InfinityFetchConfig<TResponse, TParams, TItem>
->;
+export type InfinityFetchStreamConfig<
+  TResponse,
+  TParams extends object,
+  TItem,
+  TOut = TItem,
+> = StreamConfig<InfinityFetchConfig<TResponse, TParams, TItem, TOut>>;

@@ -9,9 +9,9 @@ import type {
   PageStreamConfig,
 } from './types/index.js';
 
-function toCoreConfig<TResponse, TItem>(
-  config: Omit<PageFetchConfig<TResponse, TItem>, 'onEnd'>,
-): Omit<InfinityFetchConfig<TResponse, PageParams, TItem>, 'onEnd'> {
+function toCoreConfig<TResponse, TItem, TOut>(
+  config: Omit<PageFetchConfig<TResponse, TItem, TOut>, 'onEnd'>,
+): Omit<InfinityFetchConfig<TResponse, PageParams, TItem, TOut>, 'onEnd'> {
   const { getItems, getTotalPages, isLastPage, startPage = 1, perPage = 100, ...options } = config;
 
   let currentPage = startPage;
@@ -59,9 +59,9 @@ function toCoreConfig<TResponse, TItem>(
  *   perPage: 50,
  * });
  */
-export function pageFetch<TResponse, TItem>(
-  config: PageFetchConfig<TResponse, TItem>,
-): Promise<InfinityFetchResult<TItem>> {
+export function pageFetch<TResponse, TItem, TOut = TItem>(
+  config: PageFetchConfig<TResponse, TItem, TOut>,
+): Promise<InfinityFetchResult<TOut>> {
   return infinityFetch({ ...toCoreConfig(config), onEnd: config.onEnd });
 }
 
@@ -76,8 +76,8 @@ export function pageFetch<TResponse, TItem>(
  *   await handle(items);
  * }
  */
-export function pageStream<TResponse, TItem>(
-  config: PageStreamConfig<TResponse, TItem>,
-): AsyncGenerator<InfinityFetchPage<TResponse, TItem>, void, void> {
+export function pageStream<TResponse, TItem, TOut = TItem>(
+  config: PageStreamConfig<TResponse, TItem, TOut>,
+): AsyncGenerator<InfinityFetchPage<TResponse, TOut>, void, void> {
   return infinityFetchStream({ ...toCoreConfig(config), onEnd: config.onEnd });
 }

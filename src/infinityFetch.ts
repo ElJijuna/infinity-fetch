@@ -6,6 +6,8 @@ import type { InfinityFetchConfig, InfinityFetchResult } from './types/index.js'
 /**
  * Fetches every page of a paginated API and returns all items at once.
  *
+ * Use {@link infinityFetchStream} instead when the dataset is too large to hold in memory.
+ *
  * @example
  * const { items, pages } = await infinityFetch({
  *   fetcher: (params, { signal }) => api.list(params, { signal }),
@@ -15,11 +17,11 @@ import type { InfinityFetchConfig, InfinityFetchResult } from './types/index.js'
  *   getItems: (r) => r.items,
  * });
  */
-export async function infinityFetch<TResponse, TParams extends object, TItem>(
-  config: InfinityFetchConfig<TResponse, TParams, TItem>,
-): Promise<InfinityFetchResult<TItem>> {
-  const items: TItem[] = [];
-  const iterator = paginate<TResponse, TParams, TItem>(config)[Symbol.asyncIterator]();
+export async function infinityFetch<TResponse, TParams extends object, TItem, TOut = TItem>(
+  config: InfinityFetchConfig<TResponse, TParams, TItem, TOut>,
+): Promise<InfinityFetchResult<TOut>> {
+  const items: TOut[] = [];
+  const iterator = paginate<TResponse, TParams, TItem, TOut>(config)[Symbol.asyncIterator]();
 
   let pages = 0;
   let aborted = false;
@@ -42,7 +44,7 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
     }
   } catch (error) {
     if (error instanceof PageFailure) {
-      for (const item of (error.committedItems ?? []) as TItem[]) {
+      for (const item of (error.committedItems ?? []) as TOut[]) {
         items.push(item);
       }
 
@@ -52,7 +54,7 @@ export async function infinityFetch<TResponse, TParams extends object, TItem>(
     throw error;
   }
 
-  const result: InfinityFetchResult<TItem> = aborted
+  const result: InfinityFetchResult<TOut> = aborted
     ? { items, pages, aborted: true }
     : { items, pages };
 

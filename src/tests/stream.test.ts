@@ -95,6 +95,20 @@ describe('infinityFetchStream', () => {
     expect(onEnd).toHaveBeenCalledWith({ pages: 1, items: 1 });
   });
 
+  it('applies maxItems while streaming', async () => {
+    const fetcher = makeCursorFetcher([
+      { items: [1, 2, 3], done: false, next: 1 },
+      { items: [4, 5], done: true, next: 0 },
+    ]);
+    const collected: number[] = [];
+
+    for await (const page of infinityFetchStream({ ...baseCursorConfig, fetcher, maxItems: 4 })) {
+      collected.push(...page.items);
+    }
+
+    expect(collected).toEqual([1, 2, 3, 4]);
+  });
+
   it('reports aborted in the summary when the signal fires', async () => {
     const controller = new AbortController();
     const onEnd = jest.fn();

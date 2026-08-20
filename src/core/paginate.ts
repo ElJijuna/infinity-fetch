@@ -53,9 +53,9 @@ async function fetchWithRetry<TResponse, TParams extends object>(
  * they collected; an `InfinityFetchError` raised by a user callback passes through
  * untouched so it is never double-wrapped.
  */
-export async function* paginate<TResponse, TParams extends object, TItem>(
-  config: Omit<InfinityFetchConfig<TResponse, TParams, TItem>, 'onEnd'>,
-): AsyncGenerator<InfinityFetchPage<TResponse, TItem>, boolean, void> {
+export async function* paginate<TResponse, TParams extends object, TItem, TOut>(
+  config: Omit<InfinityFetchConfig<TResponse, TParams, TItem, TOut>, 'onEnd'>,
+): AsyncGenerator<InfinityFetchPage<TResponse, TOut>, boolean, void> {
   const {
     fetcher,
     initialParams,
@@ -65,6 +65,11 @@ export async function* paginate<TResponse, TParams extends object, TItem>(
     onStart,
     onPage,
     maxPages = Number.POSITIVE_INFINITY,
+    maxItems = Number.POSITIVE_INFINITY,
+    stopWhen,
+    mapItem,
+    filterItem,
+    dedupeBy,
     delay,
     retry,
     signal,
@@ -72,21 +77,52 @@ export async function* paginate<TResponse, TParams extends object, TItem>(
 
   await onStart?.();
 
+  const seen = dedupeBy ? new Set<unknown>() : undefined;
+
   let params = initialParams;
   let pageIndex = 0;
+  let itemIndex = 0;
+  let collected = 0;
 
-  while (pageIndex < maxPages) {
+  while (pageIndex < maxPages && collected < maxItems) {
     if (signal?.aborted) {
       return true;
     }
 
     let response: TResponse;
-    let pageItems: TItem[] = [];
-    let committedItems: TItem[] | undefined;
+
+    const pageItems: TOut[] = [];
+
+    let committedItems: TOut[] | undefined;
 
     try {
       response = await fetchWithRetry(fetcher, params, pageIndex, retry, signal);
-      pageItems = await getItems(response);
+
+      for (const item of await getItems(response)) {
+        const index = itemIndex++;
+        const mapped = (mapItem ? mapItem(item, index) : item) as TOut;
+
+        if (filterItem && !filterItem(mapped, index)) {
+          continue;
+        }
+
+        if (seen && dedupeBy) {
+          const key = dedupeBy(mapped);
+
+          if (seen.has(key)) {
+            continue;
+          }
+
+          seen.add(key);
+        }
+
+        pageItems.push(mapped);
+
+        if (collected + pageItems.length >= maxItems) {
+          break;
+        }
+      }
+
       committedItems = pageItems;
 
       await onPage?.(pageItems, response, pageIndex);
@@ -102,12 +138,13 @@ export async function* paginate<TResponse, TParams extends object, TItem>(
       throw new PageFailure(pageIndex, params, error, committedItems);
     }
 
+    collected += pageItems.length;
     pageIndex++;
 
     yield { items: pageItems, response, pageIndex: pageIndex - 1 };
 
     try {
-      if (isLastPage(response)) {
+      if (isLastPage(response) || stopWhen?.(pageItems, response, pageIndex - 1)) {
         return false;
       }
 
