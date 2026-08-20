@@ -6,6 +6,8 @@ export type { InfinityFetchPage } from './InfinityFetchPage.js';
 export type { InfinityFetchResult } from './InfinityFetchResult.js';
 export type { InfinityFetchRetryConfig } from './InfinityFetchRetryConfig.js';
 export type { InfinityFetchSummary } from './InfinityFetchSummary.js';
+export type { LinkFetchConfig, LinkStreamConfig } from './LinkFetchConfig.js';
+export type { LinkParams } from './LinkParams.js';
 export type { PagedFetchConfig, PagedStreamConfig } from './PagedFetchConfig.js';
 export type { PagedParams } from './PagedParams.js';
 export type { PagedResponse } from './PagedResponse.js';
