@@ -86,7 +86,7 @@ export async function* paginate<TResponse, TParams extends object, TItem>(
 
     try {
       response = await fetchWithRetry(fetcher, params, pageIndex, retry, signal);
-      pageItems = getItems(response);
+      pageItems = await getItems(response);
       committedItems = pageItems;
 
       await onPage?.(pageItems, response, pageIndex);

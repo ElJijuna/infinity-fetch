@@ -14,8 +14,8 @@ export type InfinityFetchConfig<TResponse, TParams extends object, TItem> = Pagi
   isLastPage: (response: TResponse) => boolean;
   /** Returns the params for the next page request */
   getNextParams: (response: TResponse, currentParams: TParams) => TParams;
-  /** Extracts items from a single page response */
-  getItems: (response: TResponse) => TItem[];
+  /** Extracts items from a single page response. May be async */
+  getItems: (response: TResponse) => TItem[] | Promise<TItem[]>;
 };
 
 export type InfinityFetchStreamConfig<TResponse, TParams extends object, TItem> = StreamConfig<

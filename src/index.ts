@@ -3,6 +3,7 @@ export { InfinityFetchError } from './InfinityFetchError.js';
 export { infinityFetch } from './infinityFetch.js';
 export { infinityFetchStream } from './infinityFetchStream.js';
 export { pagedFetch, pagedStream } from './pagedFetch.js';
+export { pageFetch, pageStream } from './pageFetch.js';
 export type {
   CursorFetchConfig,
   CursorParams,
@@ -18,6 +19,9 @@ export type {
   PagedParams,
   PagedResponse,
   PagedStreamConfig,
+  PageFetchConfig,
+  PageParams,
+  PageStreamConfig,
   PaginationOptions,
   StreamConfig,
 } from './types/index.js';

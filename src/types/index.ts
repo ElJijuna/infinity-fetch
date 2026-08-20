@@ -9,5 +9,7 @@ export type { InfinityFetchSummary } from './InfinityFetchSummary.js';
 export type { PagedFetchConfig, PagedStreamConfig } from './PagedFetchConfig.js';
 export type { PagedParams } from './PagedParams.js';
 export type { PagedResponse } from './PagedResponse.js';
+export type { PageFetchConfig, PageStreamConfig } from './PageFetchConfig.js';
+export type { PageParams } from './PageParams.js';
 export type { PaginationOptions } from './PaginationOptions.js';
 export type { StreamConfig } from './StreamConfig.js';
